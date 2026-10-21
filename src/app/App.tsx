@@ -11,7 +11,7 @@ export function App() {
   return (
     <>
       <header className="app-header">
-        <h1>Complexity Explorer</h1>
+        <h1>Complexity Lab</h1>
         <nav aria-label="Modules">
           {ROUTES.map((r) => (
             <button
