@@ -1,8 +1,9 @@
 import * as Plot from '@observablehq/plot';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CLASS_LABEL } from '../engine/complexity';
 import { extrapolate } from '../engine/fit';
 import type { Fit } from '../engine/fit';
+import { useWidth } from './useWidth';
 
 export interface ScalingSeries {
   label: string;
@@ -24,26 +25,15 @@ interface Props {
   markers?: ScalingMarker[];
   /** x-range of the plot; fits are drawn (dashed) across all of it. */
   domain: [number, number];
-}
-
-function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [width, setWidth] = useState(640);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => entry && setWidth(Math.max(280, entry.contentRect.width)));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, width] as const;
+  /** What the y-axis counts. */
+  yLabel?: string;
 }
 
 const logSpaced = ([lo, hi]: [number, number], k: number) =>
   Array.from({ length: k }, (_, i) => lo * (hi / lo) ** (i / (k - 1)));
 
 /** Measured op counts against n, with the best-fit curve for each series. */
-export function ScalingView({ series, markers = [], domain }: Props) {
+export function ScalingView({ series, markers = [], domain, yLabel = 'operations' }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [logX, setLogX] = useState(false);
   const [logY, setLogY] = useState(false);
@@ -70,7 +60,7 @@ export function ScalingView({ series, markers = [], domain }: Props) {
       marginLeft: 60,
       style: { background: 'transparent', color: 'currentColor' },
       x: { type: logX ? 'log' : 'linear', domain: logX ? domain : [0, domain[1]], label: 'input size n →', grid: true },
-      y: { type: logY ? 'log' : 'linear', label: '↑ operations', grid: true, nice: true },
+      y: { type: logY ? 'log' : 'linear', label: `↑ ${yLabel}`, grid: true, nice: true },
       marks: [
         Plot.line(fitted, { x: 'n', y: 'ops', z: 'label', stroke: (d) => color(d.series), strokeDasharray: '5,4', strokeOpacity: 0.7 }),
         Plot.line(measured, { x: 'n', y: 'ops', z: 'label', stroke: (d) => color(d.label), strokeWidth: 2 }),
@@ -80,7 +70,7 @@ export function ScalingView({ series, markers = [], domain }: Props) {
     });
     el.replaceChildren(plot);
     return () => plot.remove();
-  }, [ref, series, markers, domain, width, logX, logY]);
+  }, [ref, series, markers, domain, width, logX, logY, yLabel]);
 
   return (
     <div>
@@ -102,9 +92,9 @@ export function ScalingView({ series, markers = [], domain }: Props) {
           <input type="checkbox" checked={logY} onChange={(e) => setLogY(e.target.checked)} /> log scale y
         </label>
       </div>
-      <div className="plot" ref={ref} role="img" aria-label="Scaling plot of operations against n" />
+      <div className="plot" ref={ref} role="img" aria-label={`Scaling plot of ${yLabel} against n`} />
       <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-        Solid: measured op counts. Dashed: fitted curve, extended beyond the measured range. Ring: the
+        Solid: measured {yLabel}. Dashed: fitted curve, extended beyond the measured range. Ring: the
         animated run at the current step.
       </p>
     </div>

@@ -18,6 +18,16 @@ describe('growth-rate wall', () => {
     expect((n + 1) * Math.log2(n + 1)).toBeGreaterThan(1e9);
   });
 
+  it('φⁿ allows more n than 2ⁿ, and n² log n less than n²', () => {
+    expect(largestN('expPhi', 1e9)).toEqual({ kind: 'exact', n: 43 });
+    const r = largestN('n2logn', 1e9);
+    expect(r.kind).toBe('exact');
+    const n = (r as { n: number }).n;
+    expect(n * n * Math.log2(n)).toBeLessThanOrEqual(1e9);
+    expect((n + 1) * (n + 1) * Math.log2(n + 1)).toBeGreaterThan(1e9);
+    expect(n).toBeLessThan(31_622);
+  });
+
   it('log n and constant are effectively unbounded', () => {
     expect(largestN('1', 1e9).kind).toBe('unbounded');
     const r = largestN('logn', 1e9);

@@ -34,4 +34,19 @@ describe('benchmark', () => {
     expect(pts.length).toBeGreaterThanOrEqual(5);
     expect(bestFit(pts).cls).toBe(spec.expected[kind]);
   });
+
+  // The same audit for peak memory, for algorithms whose point is the space they use.
+  const memCases = MODULES.flatMap((m) =>
+    m.algorithms.flatMap((a) =>
+      a.expectedMem ? a.inputKinds.map((k) => [a.id, k.id, a.expectedMem![k.id]] as const) : [],
+    ),
+  );
+  it.each(memCases)('%s on %s input uses %s memory', (algoId, kind) => {
+    const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec), inputKind: kind, seed: 1 })]
+      .filter((p) => !p.truncated)
+      .map((p) => ({ n: p.n, y: p.peakMem + p.peakStack }));
+    expect(pts.length).toBeGreaterThanOrEqual(5);
+    expect(bestFit(pts).cls).toBe(spec.expectedMem![kind]);
+  });
 });

@@ -139,7 +139,7 @@ table.wall th:first-child, table.wall td:first-child { text-align: left; }
 .plot figure { margin: 0; }
 
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.tabs button[aria-selected='true'] { background: var(--accent-soft); border-color: var(--accent); }
+.tabs button[aria-selected='true'], .tabs button[aria-checked='true'] { background: var(--accent-soft); border-color: var(--accent); }
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 180px; }
 .bars > div { flex: 1 1 0; min-width: 3px; background: var(--muted); border-radius: 2px 2px 0 0; opacity: 0.55; }
 .bars > div.in-range { opacity: 1; }
@@ -156,7 +156,29 @@ table.wall th:first-child, table.wall td:first-child { text-align: left; }
 .tree-node.active rect { fill: var(--warn); stroke: var(--warn); }
 .tree-node.done rect { fill: var(--accent-soft); stroke: var(--accent); }
 .tree-node text { font: 11px ui-monospace, Menlo, monospace; fill: var(--text); }
+.call-tree line { stroke: var(--border); stroke-width: 1.5; }
+.tree-node circle { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.tree-node.active circle { fill: var(--warn); stroke: var(--warn); }
+.tree-node.done circle { fill: var(--accent-soft); stroke: var(--accent); }
+.tree-node.hit circle { stroke: var(--ok); stroke-width: 3; }
 table.level-sums { border-collapse: collapse; font-size: 13px; }
 table.level-sums th, table.level-sums td { padding: 3px 10px; border-bottom: 1px solid var(--border); text-align: right; }
 .tex-block { display: block; overflow-x: auto; }
 .status-ok { color: var(--ok); font-weight: 600; }
+.graph-svg { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 6px; }
+.graph-svg.editing { cursor: crosshair; max-width: 680px; margin: 0 auto; }
+.stack.top { align-content: start; }
+.ge line { stroke: var(--muted); stroke-width: 1.5; stroke-opacity: 0.6; }
+.ge text { font: 11px ui-monospace, Menlo, monospace; fill: var(--muted); }
+.gv { cursor: default; }
+.graph-svg.editing .gv { cursor: pointer; }
+.gv circle { fill: var(--surface); stroke: var(--border); stroke-width: 2; }
+.gv text { font: 12px ui-monospace, Menlo, monospace; fill: var(--text); pointer-events: none; }
+.gv text.dist { font-size: 11px; fill: var(--accent); font-weight: 600; }
+.gv.done circle { fill: var(--ok-soft); stroke: var(--ok); }
+.gv.frontier circle { fill: var(--accent-soft); stroke: var(--accent); }
+.gv.current circle { fill: var(--warn); stroke: var(--warn); }
+.gv.source circle { stroke-width: 4; }
+.gv.selected circle { stroke: var(--accent); stroke-dasharray: 4 3; stroke-width: 3; }
+.gv:focus-visible { outline: none; }
+.gv:focus-visible circle { stroke: var(--accent); stroke-width: 4; }

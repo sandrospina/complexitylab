@@ -24,10 +24,11 @@ Engine, linear/binary search, three synced views + timeline, race, predict widge
 Insertion, merge, quicksort (naive and random pivot); presets (random, sorted, reversed, few unique); adversary editor; recursion-tree view with per-level costs; master theorem explainer (KaTeX); shared RaceView; call-tree frames in the engine.
 **Gate:** naive quicksort made quadratic in adversary mode; merge sort's recursion tree sums level by level to n log n.
 
-## M3 — Time–space and graphs
+## M3 — Time–space and graphs ✅
 Fibonacci naive/memo/iterative with call-tree collapse (reuses `calltree.ts`); SVG graph editor with presets; BFS vs DFS memory; Dijkstra array vs binary heap with density slider.
 **Tests:** BFS/DFS same visited set, O(V+E) ops; both Dijkstras agree; memo fib calls ≤ 2n.
 **Gate:** Dijkstra crossover density visible on the scaling plot; BFS/DFS memory difference visible on wide vs deep graphs.
+Notes: added fit classes O(φⁿ) (naive Fibonacci) and O(n² log n) (heap Dijkstra on complete graphs); the density control is an average-degree slider; benchmark graphs for Dijkstra use weights where every edge improves a distance (the heap's worst case), since random weights hide the crossover.
 
 ## M4 — The exponential wall
 Knapsack brute force vs DP with "add a bit"; TSP brute force, Held–Karp, nearest neighbour + 2-opt on a clickable map with optimality gap; verify-vs-solve page (Sudoku, subset sum). All exponential algorithms respect budgets; UI caps n.

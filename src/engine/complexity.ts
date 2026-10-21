@@ -1,5 +1,5 @@
-/** Complexity classes the app can fit, predict and plot. */
-export const COMPLEXITY_CLASSES = ['1', 'logn', 'n', 'nlogn', 'n2', 'n3', 'exp2', 'fact'] as const;
+/** Complexity classes the app can fit, predict and plot, slowest-growing first. */
+export const COMPLEXITY_CLASSES = ['1', 'logn', 'n', 'nlogn', 'n2', 'n2logn', 'n3', 'expPhi', 'exp2', 'fact'] as const;
 
 export type ComplexityClass = (typeof COMPLEXITY_CLASSES)[number];
 
@@ -9,10 +9,15 @@ export const CLASS_LABEL: Record<ComplexityClass, string> = {
   n: 'O(n)',
   nlogn: 'O(n log n)',
   n2: 'O(n²)',
+  n2logn: 'O(n² log n)',
   n3: 'O(n³)',
+  expPhi: 'O(φⁿ)',
   exp2: 'O(2ⁿ)',
   fact: 'O(n!)',
 };
+
+/** The golden ratio, (1 + √5) / 2: naive Fibonacci makes Θ(φⁿ) calls. */
+export const PHI = (1 + Math.sqrt(5)) / 2;
 
 export function lnFactorial(n: number): number {
   if (n < 2) return 0;
@@ -38,8 +43,12 @@ export function growth(cls: ComplexityClass, n: number): number {
       return n * Math.log2(n);
     case 'n2':
       return n * n;
+    case 'n2logn':
+      return n * n * Math.log2(n);
     case 'n3':
       return n * n * n;
+    case 'expPhi':
+      return PHI ** n;
     case 'exp2':
       return 2 ** n;
     case 'fact':

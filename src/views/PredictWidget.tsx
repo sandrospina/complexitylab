@@ -1,6 +1,8 @@
 import { CLASS_LABEL, COMPLEXITY_CLASSES } from '../engine/complexity';
 import type { ComplexityClass } from '../engine/complexity';
 
+const grows = (c: ComplexityClass) => COMPLEXITY_CLASSES.indexOf(c);
+
 interface Props {
   algorithm: string;
   value?: ComplexityClass;
@@ -33,7 +35,9 @@ export function PredictWidget({ algorithm, value, onChange, measured, disabled }
             ? 'You did not predict this one.'
             : value === measured
               ? 'Your prediction was right.'
-              : `You predicted ${CLASS_LABEL[value]}.`}
+              : grows(value) > grows(measured)
+                ? `You predicted ${CLASS_LABEL[value]}: a valid upper bound, but not tight.`
+                : `You predicted ${CLASS_LABEL[value]}.`}
         </p>
       )}
     </fieldset>

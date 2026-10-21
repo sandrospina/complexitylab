@@ -1,4 +1,4 @@
-import { lnFactorial } from '../../engine/complexity';
+import { lnFactorial, PHI } from '../../engine/complexity';
 import type { ComplexityClass } from '../../engine/complexity';
 
 export const SECONDS = {
@@ -22,8 +22,12 @@ function log10Cost(cls: ComplexityClass, x: number): number {
       return x + Math.log10(Math.max(x * LOG2_10, 1e-300));
     case 'n2':
       return 2 * x;
+    case 'n2logn':
+      return 2 * x + Math.log10(Math.max(x * LOG2_10, 1e-300));
     case 'n3':
       return 3 * x;
+    case 'expPhi':
+      return 10 ** x * Math.log10(PHI);
     case 'exp2':
       return 10 ** x * Math.log10(2);
     case 'fact':
@@ -34,6 +38,8 @@ function log10Cost(cls: ComplexityClass, x: number): number {
 /** log10 of the class's cost at an exact integer n (used once n is small enough to form). */
 function log10CostAt(cls: ComplexityClass, n: number): number {
   switch (cls) {
+    case 'expPhi':
+      return n * Math.log10(PHI);
     case 'exp2':
       return n * Math.log10(2);
     case 'fact':

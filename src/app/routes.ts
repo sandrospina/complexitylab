@@ -11,6 +11,8 @@ export interface Route {
 export const ROUTES: Route[] = [
   { id: 'search', title: 'Search', component: lazy(() => import('../modules/search/SearchModule')) },
   { id: 'sorting', title: 'Sorting', component: lazy(() => import('../modules/sorting/SortingModule')) },
+  { id: 'time-space', title: 'Time–space', component: lazy(() => import('../modules/time-space/TimeSpaceModule')) },
+  { id: 'graphs', title: 'Graphs', component: lazy(() => import('../modules/graphs/GraphsModule')) },
   {
     id: 'growth-wall',
     title: 'Growth-rate wall',

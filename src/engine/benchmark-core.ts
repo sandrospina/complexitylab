@@ -7,6 +7,8 @@ export interface BenchmarkRequest {
   algoId: string;
   nValues: number[];
   inputKind: string;
+  /** Passed to the spec's makeInput, e.g. the average degree of a random graph. */
+  param?: number;
   seed: number;
   /** Applied per n. */
   budget?: Budget;
@@ -47,7 +49,7 @@ export function* benchmark(req: BenchmarkRequest): Generator<BenchmarkPoint> {
     let truncated = false;
     let t = 0;
     for (; t < trials && !truncated && (t === 0 || ops < TRIAL_OPS); t++) {
-      const run = runCount(spec.generator, spec.makeInput(n, req.inputKind, rng), { budget });
+      const run = runCount(spec.generator, spec.makeInput(n, req.inputKind, rng, req.param), { budget });
       const c = run.counters;
       ops += spec.metric === 'total' ? c.totalOps : c.ops[spec.metric];
       peakMem = Math.max(peakMem, c.peakMem);
