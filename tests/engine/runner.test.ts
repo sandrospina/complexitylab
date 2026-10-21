@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { BudgetExceeded, Instrument } from '../../src/engine/instrument';
 import { runCount, runTrace } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
+import type { TraceEvent } from '../../src/engine/events';
+import { buildCallTree, levelSums } from '../../src/engine/calltree';
 
 // Touches every element once, with one frame and a scratch cell, so all counter kinds move.
 const scan: Algorithm<number[], number> = function* (arr, ins) {
@@ -64,5 +66,38 @@ describe('runner', () => {
     const ins = new Instrument({ maxOps: 1 });
     ins.compare();
     expect(() => ins.compare()).toThrow(BudgetExceeded);
+  });
+});
+
+describe('frames', () => {
+  // A tiny recursive algorithm: f(k) calls f(k - 1) twice, and does one compare per call.
+  const tree: Algorithm<number, void> = function* (k, ins) {
+    function* f(d: number): Generator<TraceEvent, void, void> {
+      yield ins.pushFrame({ label: `f(${d})`, value: d });
+      yield ins.compare();
+      if (d > 0) {
+        yield* f(d - 1);
+        yield* f(d - 1);
+      }
+      yield ins.popFrame();
+    }
+    yield* f(k);
+  };
+
+  it('stamps pushFrame with ids and parents, and counted ops with the current frame', () => {
+    const { steps } = runTrace(tree, 1);
+    const pushes = steps.filter((s) => s.event.op === 'pushFrame').map((s) => s.event);
+    expect(pushes.map((e) => [e.frame, e.parentFrame])).toEqual([[0, undefined], [1, 0], [2, 0]]);
+    const compares = steps.filter((s) => s.event.op === 'compare').map((s) => s.event.frame);
+    expect(compares).toEqual([0, 1, 2]);
+  });
+
+  it('builds a call tree with per-level own costs', () => {
+    const { steps } = runTrace(tree, 3);
+    const nodes = buildCallTree(steps);
+    expect(nodes).toHaveLength(15);
+    expect(nodes[0]).toMatchObject({ parent: undefined, depth: 0, label: 'f(3)', size: 3, ownOps: 1 });
+    expect(levelSums(nodes)).toEqual([1, 2, 4, 8]);
+    expect(nodes.every((n) => n.endStep !== undefined && n.endStep > n.startStep)).toBe(true);
   });
 });

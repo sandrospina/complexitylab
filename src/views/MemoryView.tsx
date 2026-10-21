@@ -1,4 +1,8 @@
+import { OP_KINDS } from '../engine/events';
 import type { Counters } from '../engine/instrument';
+
+const BOOKKEEPING = new Set(['alloc', 'free', 'pushFrame', 'popFrame']);
+const COUNTED = OP_KINDS.filter((k) => !BOOKKEEPING.has(k));
 
 export interface MemoryRow {
   label: string;
@@ -36,6 +40,13 @@ export function MemoryView({ rows }: { rows: MemoryRow[] }) {
             <span className="mono" data-testid={`ops-${label}`}>
               {c.totalOps}
             </span>
+            {COUNTED.filter((k) => c.ops[k] > 0 && c.ops[k] !== c.totalOps).map((k) => (
+              <span key={k} style={{ display: 'contents' }}>
+                <span className="muted">&nbsp;&nbsp;{k}</span>
+                <span />
+                <span className="mono muted">{c.ops[k]}</span>
+              </span>
+            ))}
             <Meter label="Memory cells" value={c.memCells} peak={c.peakMem} scale={memScale} />
             <Meter label="Stack frames" value={c.stackDepth} peak={c.peakStack} scale={stackScale} />
           </div>

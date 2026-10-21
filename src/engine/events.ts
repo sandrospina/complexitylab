@@ -31,4 +31,11 @@ export interface TraceEvent<S = unknown> extends EventDetail<S> {
   op: OpKind | 'mark';
   /** Cells allocated or freed, for alloc/free events. */
   cells?: number;
+  /**
+   * Call frame: on pushFrame the new frame's id, on popFrame the frame being left, on
+   * counted ops the frame they are charged to. Undefined outside any frame.
+   */
+  frame?: number;
+  /** On pushFrame only: the caller's frame. */
+  parentFrame?: number;
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { SearchInputKind } from '../algorithms/search/input';
-import { powersOfTwo, runBenchmark } from '../engine/benchmark';
+import { powersOfTwo, runBenchmarks } from '../engine/benchmark';
 import type { BenchmarkPoint } from '../engine/benchmark-core';
 import type { ComplexityClass } from '../engine/complexity';
 import { enumParam, intParam } from './url-state';
@@ -33,7 +33,7 @@ interface SearchState extends Config {
 }
 
 export const useSearchStore = create<SearchState>()((set, get) => {
-  let cancels: (() => void)[] = [];
+  let cancel = () => {};
 
   return {
     mode: enumParam('algo', SEARCH_MODES, 'binary'),
@@ -54,22 +54,18 @@ export const useSearchStore = create<SearchState>()((set, get) => {
     predict: (a, c) => set((s) => ({ predictions: { ...s.predictions, [a]: c } })),
 
     runBench: () => {
-      cancels.forEach((c) => c());
+      cancel();
       const { mode, kind, seed } = get();
       const algos = modeAlgos(mode);
-      let pending = algos.length;
+      const byId = Object.fromEntries(algos.map((a) => [ALGO_ID[a], a])) as Record<string, SearchAlgo>;
       set((s) => ({ benchRunning: true, bench: { ...s.bench, ...Object.fromEntries(algos.map((a) => [a, []])) } }));
-      cancels = algos.map((a) =>
-        runBenchmark(
-          { algoId: ALGO_ID[a], nValues: BENCH_N, inputKind: kind, seed },
-          {
-            onPoint: (p) => set((s) => ({ bench: { ...s.bench, [a]: [...(s.bench[a] ?? []), p] } })),
-            onDone: () => {
-              pending--;
-              if (pending === 0) set({ benchRunning: false });
-            },
-          },
-        ),
+      cancel = runBenchmarks(
+        algos.map((a) => ({ algoId: ALGO_ID[a], nValues: BENCH_N, inputKind: kind, seed })),
+        (p) => {
+          const a = byId[p.algoId]!;
+          set((s) => ({ bench: { ...s.bench, [a]: [...(s.bench[a] ?? []), p] } }));
+        },
+        () => set({ benchRunning: false }),
       );
     },
   };

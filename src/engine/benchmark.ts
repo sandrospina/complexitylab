@@ -25,3 +25,21 @@ export function runBenchmark(req: BenchmarkRequest, h: BenchmarkHandlers): () =>
 
 export const powersOfTwo = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => 2 ** (from + i));
+
+/** Runs several benchmarks in parallel workers; `onAllDone` fires once every one has finished. */
+export function runBenchmarks(
+  reqs: BenchmarkRequest[],
+  onPoint: (p: BenchmarkPoint) => void,
+  onAllDone: () => void,
+): () => void {
+  let pending = reqs.length;
+  const cancels = reqs.map((req) =>
+    runBenchmark(req, {
+      onPoint,
+      onDone: () => {
+        if (--pending === 0) onAllDone();
+      },
+    }),
+  );
+  return () => cancels.forEach((c) => c());
+}

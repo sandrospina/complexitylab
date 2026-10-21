@@ -22,6 +22,9 @@ export class BudgetExceeded extends Error {
   }
 }
 
+/** Returned by every method in count mode, where events are discarded unread. */
+const DISCARDED: TraceEvent = Object.freeze({ op: 'mark' }) as TraceEvent;
+
 const BOOKKEEPING: ReadonlySet<OpKind> = new Set(['alloc', 'free', 'pushFrame', 'popFrame']);
 const TIME_CHECK_INTERVAL = 1024;
 
@@ -41,8 +44,14 @@ export function cloneCounters(c: Counters): Counters {
 export class Instrument {
   readonly counters: Counters = emptyCounters();
   private readonly startMs: number;
+  private readonly frames: number[] = [];
+  private nextFrame = 0;
 
-  constructor(private readonly budget: Budget = {}) {
+  /** `record: false` (count mode) skips building events; counters are identical. */
+  constructor(
+    private readonly budget: Budget = {},
+    private readonly record = true,
+  ) {
     this.startMs = budget.maxMs === undefined ? 0 : performance.now();
   }
 
@@ -75,28 +84,37 @@ export class Instrument {
     const c = this.counters;
     c.memCells += cells;
     c.peakMem = Math.max(c.peakMem, c.memCells);
-    return { ...this.op('alloc', d), cells };
+    const e = this.op('alloc', d);
+    return this.record ? { ...e, cells } : e;
   }
 
   free<S>(cells: number, d?: EventDetail<S>): TraceEvent<S> {
     this.counters.memCells -= cells;
-    return { ...this.op('free', d), cells };
+    const e = this.op('free', d);
+    return this.record ? { ...e, cells } : e;
   }
 
-  pushFrame<S>(d?: EventDetail<S>) {
+  pushFrame<S>(d?: EventDetail<S>): TraceEvent<S> {
     const c = this.counters;
     c.stackDepth++;
     c.peakStack = Math.max(c.peakStack, c.stackDepth);
-    return this.op('pushFrame', d);
+    const parentFrame = this.frames.at(-1);
+    const frame = this.nextFrame++;
+    this.frames.push(frame);
+    const e = this.op('pushFrame', d);
+    return this.record ? { ...e, frame, parentFrame } : e;
   }
 
-  popFrame<S>(d?: EventDetail<S>) {
+  popFrame<S>(d?: EventDetail<S>): TraceEvent<S> {
     this.counters.stackDepth--;
-    return this.op('popFrame', d);
+    const frame = this.frames.pop();
+    const e = this.op('popFrame', d);
+    return this.record ? { ...e, frame } : e;
   }
 
   /** Uncounted annotation for the animation. */
   mark<S>(label: string, d?: EventDetail<S>): TraceEvent<S> {
+    if (!this.record) return DISCARDED as TraceEvent<S>;
     return { ...d, op: 'mark', label };
   }
 
@@ -115,6 +133,7 @@ export class Instrument {
       c.totalOps++;
     }
     c.ops[op]++;
-    return { ...d, op };
+    if (!this.record) return DISCARDED as TraceEvent<S>;
+    return { ...d, op, frame: this.frames.at(-1) };
   }
 }

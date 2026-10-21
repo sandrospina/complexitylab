@@ -4,18 +4,18 @@ import { makeSearchInput, SEARCH_INPUT_KINDS } from '../../algorithms/search/inp
 import type { SearchInputKind, SearchSnapshot } from '../../algorithms/search/input';
 import { linearSearch } from '../../algorithms/search/linear';
 import { bestFit } from '../../engine/fit';
-import { emptyCounters } from '../../engine/instrument';
 import { mulberry32 } from '../../engine/rng';
 import { runTrace } from '../../engine/runner';
 import { BENCH_N, MAX_ANIM_N, SEARCH_MODES, modeAlgos, useSearchStore } from '../../store/search';
 import type { SearchAlgo, SearchMode } from '../../store/search';
 import { useUrlParams } from '../../store/url-state';
-import { AlgorithmView } from '../../views/AlgorithmView';
 import { MemoryView } from '../../views/MemoryView';
 import { PredictWidget } from '../../views/PredictWidget';
+import { RaceView } from '../../views/RaceView';
 import { ScalingView } from '../../views/ScalingView';
 import type { ScalingSeries } from '../../views/ScalingView';
 import { Timeline } from '../../views/Timeline';
+import { frameAt } from '../../views/trace-frames';
 import { ArrayStrip } from './ArrayStrip';
 import { GuessGame } from './GuessGame';
 
@@ -40,12 +40,7 @@ export default function SearchModule() {
   const maxStep = Math.max(...traces.map((t) => t.trace.steps.length));
   const s = Math.min(step, maxStep);
 
-  const frames = traces.map(({ a, trace }) => {
-    const idx = Math.min(s, trace.steps.length);
-    const upTo = trace.steps.slice(0, idx);
-    const snap = upTo.findLast((st) => st.event.snapshot)?.event.snapshot as SearchSnapshot | undefined;
-    return { a, event: upTo.at(-1)?.event, counters: upTo.at(-1)?.counters ?? emptyCounters(), snap };
-  });
+  const frames = traces.map(({ a, trace }) => ({ a, ...frameAt<SearchSnapshot>(trace, s) }));
 
   const series: ScalingSeries[] = algos.flatMap((a) => {
     const pts = (bench[a] ?? []).filter((p) => !p.truncated).map((p) => ({ n: p.n, ops: p.ops }));
@@ -105,13 +100,18 @@ export default function SearchModule() {
       </section>
 
       <div className="grid-2">
-        <div className="stack">
-          {frames.map((f) => (
-            <AlgorithmView key={f.a} title={META[f.a].name} event={f.event}>
-              <ArrayStrip input={input} snap={f.snap} />
-            </AlgorithmView>
-          ))}
-        </div>
+        <RaceView<SearchSnapshot>
+          step={s}
+          metric="compare"
+          metricLabel="compares"
+          entries={traces.map(({ a, trace }) => ({
+            key: a,
+            name: META[a].name,
+            color: META[a].color,
+            trace,
+            render: (f) => <ArrayStrip input={input} snap={f.snapshot} />,
+          }))}
+        />
         <MemoryView rows={frames.map((f) => ({ label: META[f.a].name, counters: f.counters }))} />
       </div>
 

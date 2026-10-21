@@ -15,6 +15,7 @@ export interface BenchmarkRequest {
 export interface BenchmarkPoint {
   algoId: string;
   n: number;
+  /** The spec's metric: one op kind, or the total of all counted ops. */
   ops: number;
   peakMem: number;
   peakStack: number;
@@ -22,6 +23,12 @@ export interface BenchmarkPoint {
 }
 
 export const DEFAULT_BENCH_BUDGET: Budget = { maxOps: 5e7, maxMs: 2000 };
+/**
+ * Random input kinds average up to this many trials per n, so average-case curves are not
+ * one noisy sample. Trials stop early past TRIAL_OPS, where a single large run is already stable.
+ */
+export const RANDOM_TRIALS = 8;
+const TRIAL_OPS = 2e6;
 
 /**
  * Runs the algorithm in count mode for each n (capped at the spec's maxBenchN).
@@ -30,18 +37,24 @@ export const DEFAULT_BENCH_BUDGET: Budget = { maxOps: 5e7, maxMs: 2000 };
 export function* benchmark(req: BenchmarkRequest): Generator<BenchmarkPoint> {
   const spec = findAlgorithm(req.algoId);
   const budget = req.budget ?? DEFAULT_BENCH_BUDGET;
+  const trials = spec.inputKinds.find((k) => k.id === req.inputKind)?.random ? RANDOM_TRIALS : 1;
   for (const n of req.nValues) {
     if (n > spec.maxBenchN) break;
-    const input = spec.makeInput(n, req.inputKind, mulberry32(req.seed + n));
-    const { counters, truncated } = runCount(spec.generator, input, { budget });
-    yield {
-      algoId: req.algoId,
-      n,
-      ops: counters.totalOps,
-      peakMem: counters.peakMem,
-      peakStack: counters.peakStack,
-      truncated,
-    };
+    const rng = mulberry32(req.seed + n);
+    let ops = 0;
+    let peakMem = 0;
+    let peakStack = 0;
+    let truncated = false;
+    let t = 0;
+    for (; t < trials && !truncated && (t === 0 || ops < TRIAL_OPS); t++) {
+      const run = runCount(spec.generator, spec.makeInput(n, req.inputKind, rng), { budget });
+      const c = run.counters;
+      ops += spec.metric === 'total' ? c.totalOps : c.ops[spec.metric];
+      peakMem = Math.max(peakMem, c.peakMem);
+      peakStack = Math.max(peakStack, c.peakStack);
+      truncated = run.truncated;
+    }
+    yield { algoId: req.algoId, n, ops: ops / t, peakMem, peakStack, truncated };
     if (truncated) break;
   }
 }

@@ -9,9 +9,9 @@ export interface SearchInput {
 
 export type SearchInputKind = 'worst' | 'random';
 
-export const SEARCH_INPUT_KINDS: { id: SearchInputKind; label: string }[] = [
+export const SEARCH_INPUT_KINDS: { id: SearchInputKind; label: string; random?: boolean }[] = [
   { id: 'worst', label: 'Worst case (target absent, larger than all)' },
-  { id: 'random', label: 'Random target present in the array' },
+  { id: 'random', label: 'Random target present in the array', random: true },
 ];
 
 export function makeSearchInput(n: number, kind: SearchInputKind, rng: Rng): SearchInput {

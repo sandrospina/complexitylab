@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { benchmark } from '../../src/engine/benchmark-core';
-import { MODULES } from '../../src/modules/registry';
+import { benchSizes, MODULES } from '../../src/modules/registry';
 import { bestFit } from '../../src/engine/fit';
-import { powersOfTwo } from '../../src/engine/benchmark';
 
 describe('benchmark', () => {
   it('produces one point per n', () => {
@@ -23,14 +22,16 @@ describe('benchmark', () => {
     expect(pts.map((p) => p.truncated)).toEqual([false, false, true]);
   });
 
-  it('every registered algorithm measures its textbook class', () => {
-    for (const m of MODULES) {
-      for (const a of m.algorithms) {
-        const pts = [
-          ...benchmark({ algoId: a.id, nValues: powersOfTwo(4, 16), inputKind: 'worst', seed: 1 }),
-        ].map((p) => ({ n: p.n, y: p.ops }));
-        expect(bestFit(pts).cls, a.id).toBe(a.expectedClass);
-      }
-    }
+  // The instrumentation audit: each algorithm, on each input kind, must measure as its textbook class.
+  const cases = MODULES.flatMap((m) =>
+    m.algorithms.flatMap((a) => a.inputKinds.map((k) => [a.id, k.id, a.expected[k.id]] as const)),
+  );
+  it.each(cases)('%s on %s input measures %s', (algoId, kind) => {
+    const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec), inputKind: kind, seed: 1 })]
+      .filter((p) => !p.truncated)
+      .map((p) => ({ n: p.n, y: p.ops }));
+    expect(pts.length).toBeGreaterThanOrEqual(5);
+    expect(bestFit(pts).cls).toBe(spec.expected[kind]);
   });
 });

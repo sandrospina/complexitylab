@@ -67,7 +67,7 @@ export function runCount<I, R>(
   input: I,
   { budget }: RunOptions = {},
 ): CountResult<R> {
-  const ins = new Instrument(budget);
+  const ins = new Instrument(budget, false);
   const gen = algo(input, ins);
   try {
     for (;;) {
