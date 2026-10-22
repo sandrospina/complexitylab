@@ -1,4 +1,4 @@
-import { CLASS_LABEL, FIXED_CLASSES, growth } from './complexity';
+import { CLASS_LABEL, FIXED_CLASSES, growth, PHI } from './complexity';
 import type { ComplexityClass, FixedClass } from './complexity';
 
 export interface Point {
@@ -20,6 +20,9 @@ export interface Fit {
 /** A fitted-base exponential must beat the best fixed class by this factor in error to be chosen. */
 export const EXPC_ADVANTAGE = 1.25;
 const MIN_BASE = 1.05;
+/** A fitted base this close to a named one (2 or φ) is that class, not a new one. */
+const NAMED_BASE_TOLERANCE = 0.03;
+const NAMED_BASES = [2, PHI];
 
 /**
  * Weighted least squares of y = a·f(n) + b with weights 1/y², so that small and large n
@@ -76,6 +79,7 @@ function fitExpc(pts: Point[]): Fit | undefined {
   const slope = ps.reduce((s, p) => s + (p.n - mx) * (Math.log(p.y) - my), 0) / sxx;
   const base = Math.exp(slope);
   if (!(base >= MIN_BASE) || !Number.isFinite(base)) return undefined;
+  if (NAMED_BASES.some((b) => Math.abs(base / b - 1) < NAMED_BASE_TOLERANCE)) return undefined;
   const a = Math.exp(my - slope * mx);
   return { cls: 'expc', a, b: 0, base, error: relError(pts, (n) => a * base ** n) };
 }

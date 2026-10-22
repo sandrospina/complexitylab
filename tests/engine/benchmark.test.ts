@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { benchmark } from '../../src/engine/benchmark-core';
+import { benchmark, DEFAULT_BENCH_BUDGET } from '../../src/engine/benchmark-core';
 import { benchSizes, MODULES } from '../../src/modules/registry';
 import { bestFit } from '../../src/engine/fit';
 
 // Exponential algorithms run to their budget, and median kinds run many trials per n.
 const AUDIT_TIMEOUT = 60_000;
+/**
+ * Ops only: a time limit would make which sizes survive, and so the fitted class, depend on
+ * how fast the machine is.
+ */
+const AUDIT_BUDGET = { maxOps: DEFAULT_BENCH_BUDGET.maxOps };
 
 describe('benchmark', () => {
   it('produces one point per n', () => {
@@ -31,7 +36,7 @@ describe('benchmark', () => {
   );
   it.each(cases)('%s on %s input measures %s', (algoId, kind) => {
     const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
-    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1 })]
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1, budget: AUDIT_BUDGET })]
       .filter((p) => !p.truncated)
       .map((p) => ({ n: p.n, y: p.ops }));
     expect(pts.length).toBeGreaterThanOrEqual(5);
@@ -46,7 +51,7 @@ describe('benchmark', () => {
   );
   it.each(memCases)('%s on %s input uses %s memory', (algoId, kind) => {
     const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
-    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1 })]
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1, budget: AUDIT_BUDGET })]
       .filter((p) => !p.truncated)
       .map((p) => ({ n: p.n, y: p.peakMem + p.peakStack }));
     expect(pts.length).toBeGreaterThanOrEqual(5);

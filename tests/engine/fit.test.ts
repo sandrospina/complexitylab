@@ -40,6 +40,12 @@ describe('fit', () => {
       expect(extrapolate(fit, 100)).toBeCloseTo(40 * 1.2 ** 100, -Math.round(Math.log10(40 * 1.2 ** 100)) + 3);
     });
 
+    it('names noisy 2ⁿ data O(2ⁿ), not O(cⁿ) with c ≈ 2', () => {
+      // About 9 ops per row with a few per cent of noise: the truth table on unsatisfiable formulas.
+      const noise = [1.03, 1.02, 1.02, 1.0, 0.99, 1.02, 0.99, 0.98];
+      expect(bestFit(noise.map((k, i) => ({ n: 4 + 2 * i, y: 9 * k * 2 ** (4 + 2 * i) }))).cls).toBe('exp2');
+    });
+
     it('does not mistake polynomials for gentle exponentials', () => {
       expect(bestFit(lin.map((n) => ({ n, y: n * n }))).cls).toBe('n2');
       expect(bestFit(lin.map((n) => ({ n, y: n ** 3 + 7 }))).cls).toBe('n3');
