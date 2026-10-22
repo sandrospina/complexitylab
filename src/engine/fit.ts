@@ -1,5 +1,5 @@
-import { COMPLEXITY_CLASSES, growth } from './complexity';
-import type { ComplexityClass } from './complexity';
+import { CLASS_LABEL, FIXED_CLASSES, growth } from './complexity';
+import type { ComplexityClass, FixedClass } from './complexity';
 
 export interface Point {
   n: number;
@@ -13,14 +13,20 @@ export interface Fit {
   b: number;
   /** Root-mean-square relative error; lower is better. */
   error: number;
+  /** For `expc`: the fitted base c in y ≈ a · cⁿ. */
+  base?: number;
 }
+
+/** A fitted-base exponential must beat the best fixed class by this factor in error to be chosen. */
+export const EXPC_ADVANTAGE = 1.25;
+const MIN_BASE = 1.05;
 
 /**
  * Weighted least squares of y = a·f(n) + b with weights 1/y², so that small and large n
  * count equally. Classes whose growth overflows on the data are skipped, and fits with a
  * negative slope fall back to a constant, so a wrong shape cannot win by bending.
  */
-function fitClass(cls: ComplexityClass, pts: Point[]): Fit | undefined {
+function fitClass(cls: FixedClass, pts: Point[]): Fit | undefined {
   const fs = pts.map((p) => growth(cls, p.n));
   if (fs.some((f) => !Number.isFinite(f))) return undefined;
 
@@ -53,11 +59,41 @@ function fitClass(cls: ComplexityClass, pts: Point[]): Fit | undefined {
   return { cls, a, b, error: Math.sqrt(sq / pts.length) };
 }
 
-/** All fittable classes, best first. */
+const relError = (pts: Point[], f: (n: number) => number) =>
+  Math.sqrt(pts.reduce((s, p) => s + ((p.y - f(p.n)) / Math.max(p.y, 1)) ** 2, 0) / pts.length);
+
+/**
+ * y ≈ a · cⁿ with c fitted: least squares of ln y against n. Rejected unless c is clearly
+ * above 1, so slow polynomial growth is not passed off as a gentle exponential.
+ */
+function fitExpc(pts: Point[]): Fit | undefined {
+  const ps = pts.filter((p) => p.y > 0);
+  if (ps.length < 3) return undefined;
+  const mx = ps.reduce((s, p) => s + p.n, 0) / ps.length;
+  const my = ps.reduce((s, p) => s + Math.log(p.y), 0) / ps.length;
+  const sxx = ps.reduce((s, p) => s + (p.n - mx) ** 2, 0);
+  if (sxx === 0) return undefined;
+  const slope = ps.reduce((s, p) => s + (p.n - mx) * (Math.log(p.y) - my), 0) / sxx;
+  const base = Math.exp(slope);
+  if (!(base >= MIN_BASE) || !Number.isFinite(base)) return undefined;
+  const a = Math.exp(my - slope * mx);
+  return { cls: 'expc', a, b: 0, base, error: relError(pts, (n) => a * base ** n) };
+}
+
+/**
+ * All fittable classes, best first. The fitted-base exponential has a free parameter the
+ * fixed classes lack, so it ranks by its error times EXPC_ADVANTAGE: exact 2ⁿ or φⁿ data keeps
+ * its named class, and O(cⁿ) wins only when no fixed shape comes close. Errors within
+ * rounding of each other tie, and the sort being stable, the slower-growing class wins.
+ */
 export function fitAll(pts: Point[]): Fit[] {
-  return COMPLEXITY_CLASSES.map((c) => fitClass(c, pts))
+  const rank = (f: Fit) => (f.cls === 'expc' ? f.error * EXPC_ADVANTAGE : f.error);
+  return [...FIXED_CLASSES.map((c) => fitClass(c, pts)), fitExpc(pts)]
     .filter((f): f is Fit => f !== undefined)
-    .sort((x, y) => x.error - y.error);
+    .sort((x, y) => {
+      const d = rank(x) - rank(y);
+      return Math.abs(d) < 1e-9 ? 0 : d;
+    });
 }
 
 export function bestFit(pts: Point[]): Fit {
@@ -67,5 +103,10 @@ export function bestFit(pts: Point[]): Fit {
 }
 
 export function extrapolate(fit: Fit, n: number): number {
-  return fit.a * growth(fit.cls, n) + fit.b;
+  return fit.a * growth(fit.cls, n, fit.base) + fit.b;
+}
+
+/** The fit's class as shown to students, with the fitted base for O(cⁿ), e.g. "O(1.21ⁿ)". */
+export function fitLabel(fit: Fit): string {
+  return fit.cls === 'expc' && fit.base !== undefined ? `O(${fit.base.toFixed(2)}ⁿ)` : CLASS_LABEL[fit.cls];
 }

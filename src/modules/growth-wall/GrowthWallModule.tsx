@@ -1,4 +1,4 @@
-import { CLASS_LABEL, COMPLEXITY_CLASSES } from '../../engine/complexity';
+import { CLASS_LABEL, FIXED_CLASSES } from '../../engine/complexity';
 import { intParam, useUrlParams } from '../../store/url-state';
 import { useState } from 'react';
 import { formatWall, largestN, SECONDS } from './wall';
@@ -45,7 +45,7 @@ export default function GrowthWallModule() {
             </tr>
           </thead>
           <tbody>
-            {COMPLEXITY_CLASSES.map((cls) => (
+            {FIXED_CLASSES.map((cls) => (
               <tr key={cls}>
                 <th scope="row">{CLASS_LABEL[cls]}</th>
                 {COLUMNS.map((c) => (

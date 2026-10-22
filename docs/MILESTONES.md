@@ -30,10 +30,11 @@ Fibonacci naive/memo/iterative with call-tree collapse (reuses `calltree.ts`); S
 **Gate:** Dijkstra crossover density visible on the scaling plot; BFS/DFS memory difference visible on wide vs deep graphs.
 Notes: added fit classes O(φⁿ) (naive Fibonacci) and O(n² log n) (heap Dijkstra on complete graphs); the density control is an average-degree slider; benchmark graphs for Dijkstra use weights where every edge improves a distance (the heap's worst case), since random weights hide the crossover.
 
-## M4 — The exponential wall
+## M4 — The exponential wall ✅
 Knapsack brute force vs DP with "add a bit"; TSP brute force, Held–Karp, nearest neighbour + 2-opt on a clickable map with optimality gap; verify-vs-solve page (Sudoku, subset sum). All exponential algorithms respect budgets; UI caps n.
 **Tests:** knapsack variants agree; brute-force TSP = Held–Karp for n ≤ 9; heuristic ≥ optimum; checkers accept valid and reject mutated certificates.
 **Gate 2:** all polynomial and exponential modules live, CI green, no UI freeze at max n.
+Notes: Sudoku is generalised to r×c boxes; the checker is audited over board side s (O(s²)) and the backtracking solver over blank cells on a fixed 9×9, by the median of 64 puzzles (costs are heavy-tailed). The solver grows like ≈1.2ⁿ, so the fitter gained O(cⁿ) with a fitted base, chosen only when it beats every fixed class by 1.25× in error. Also new: O(n²·2ⁿ) for Held–Karp; NN + 2-opt measures O(n² log n). Full solves run in a solve worker; the gate test records no main-thread task over 50 ms at max n.
 
 ## M5 — SAT solvers
 CNF types, DIMACS, random k-SAT; clause editor with colouring and incidence graph; truth-table enumeration; DPLL with heuristics (first, MOMS, Jeroslow–Wang), propagation and pure-literal toggles, search tree and trail; experiments (scaling, phase transition, heuristic shoot-out) in the worker.

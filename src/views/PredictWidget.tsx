@@ -2,6 +2,10 @@ import { CLASS_LABEL, COMPLEXITY_CLASSES } from '../engine/complexity';
 import type { ComplexityClass } from '../engine/complexity';
 
 const grows = (c: ComplexityClass) => COMPLEXITY_CLASSES.indexOf(c);
+const EXPONENTIAL: ReadonlySet<ComplexityClass> = new Set(['expc', 'expPhi', 'exp2']);
+/** O(cⁿ) names no base, so it is a right answer for any exponential. */
+const matches = (value: ComplexityClass, measured: ComplexityClass) =>
+  value === measured || (value === 'expc' && EXPONENTIAL.has(measured));
 
 interface Props {
   algorithm: string;
@@ -29,11 +33,11 @@ export function PredictWidget({ algorithm, value, onChange, measured, disabled }
         ))}
       </div>
       {measured && (
-        <p className={`verdict ${value === measured ? 'ok' : 'bad'}`} style={{ margin: 0 }} role="status">
+        <p className={`verdict ${value !== undefined && matches(value, measured) ? 'ok' : 'bad'}`} style={{ margin: 0 }} role="status">
           Measured {CLASS_LABEL[measured]}.{' '}
           {value === undefined
             ? 'You did not predict this one.'
-            : value === measured
+            : matches(value, measured)
               ? 'Your prediction was right.'
               : grows(value) > grows(measured)
                 ? `You predicted ${CLASS_LABEL[value]}: a valid upper bound, but not tight.`

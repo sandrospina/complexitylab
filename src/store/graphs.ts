@@ -64,7 +64,7 @@ export const useGraphsStore = create<GraphsState>()((set, get) => {
     cancel = runBenchmarks(
       algos.map((a) => ({
         algoId: graphAlgoId(a),
-        nValues: benchSizes(findAlgorithm(graphAlgoId(a))),
+        nValues: benchSizes(findAlgorithm(graphAlgoId(a)), kind),
         inputKind: kind,
         param,
         seed: 1,

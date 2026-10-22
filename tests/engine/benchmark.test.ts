@@ -3,6 +3,9 @@ import { benchmark } from '../../src/engine/benchmark-core';
 import { benchSizes, MODULES } from '../../src/modules/registry';
 import { bestFit } from '../../src/engine/fit';
 
+// Exponential algorithms run to their budget, and median kinds run many trials per n.
+const AUDIT_TIMEOUT = 60_000;
+
 describe('benchmark', () => {
   it('produces one point per n', () => {
     const pts = [...benchmark({ algoId: 'search/linear', nValues: [8, 16, 32], inputKind: 'worst', seed: 1 })];
@@ -28,12 +31,12 @@ describe('benchmark', () => {
   );
   it.each(cases)('%s on %s input measures %s', (algoId, kind) => {
     const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
-    const pts = [...benchmark({ algoId, nValues: benchSizes(spec), inputKind: kind, seed: 1 })]
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1 })]
       .filter((p) => !p.truncated)
       .map((p) => ({ n: p.n, y: p.ops }));
     expect(pts.length).toBeGreaterThanOrEqual(5);
     expect(bestFit(pts).cls).toBe(spec.expected[kind]);
-  });
+  }, AUDIT_TIMEOUT);
 
   // The same audit for peak memory, for algorithms whose point is the space they use.
   const memCases = MODULES.flatMap((m) =>
@@ -43,10 +46,10 @@ describe('benchmark', () => {
   );
   it.each(memCases)('%s on %s input uses %s memory', (algoId, kind) => {
     const spec = MODULES.flatMap((m) => m.algorithms).find((a) => a.id === algoId)!;
-    const pts = [...benchmark({ algoId, nValues: benchSizes(spec), inputKind: kind, seed: 1 })]
+    const pts = [...benchmark({ algoId, nValues: benchSizes(spec, kind), inputKind: kind, seed: 1 })]
       .filter((p) => !p.truncated)
       .map((p) => ({ n: p.n, y: p.peakMem + p.peakStack }));
     expect(pts.length).toBeGreaterThanOrEqual(5);
     expect(bestFit(pts).cls).toBe(spec.expectedMem![kind]);
-  });
+  }, AUDIT_TIMEOUT);
 });

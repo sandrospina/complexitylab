@@ -1,5 +1,5 @@
 import { lnFactorial, PHI } from '../../engine/complexity';
-import type { ComplexityClass } from '../../engine/complexity';
+import type { FixedClass } from '../../engine/complexity';
 
 export const SECONDS = {
   second: 1,
@@ -9,7 +9,7 @@ export const SECONDS = {
 } as const;
 
 /** log10 of the class's cost at n = 10^x, computed without forming n. */
-function log10Cost(cls: ComplexityClass, x: number): number {
+function log10Cost(cls: FixedClass, x: number): number {
   const LOG2_10 = Math.log2(10);
   switch (cls) {
     case '1':
@@ -30,18 +30,22 @@ function log10Cost(cls: ComplexityClass, x: number): number {
       return 10 ** x * Math.log10(PHI);
     case 'exp2':
       return 10 ** x * Math.log10(2);
+    case 'n2exp2':
+      return 2 * x + 10 ** x * Math.log10(2);
     case 'fact':
       return lnFactorial(10 ** x) / Math.LN10;
   }
 }
 
 /** log10 of the class's cost at an exact integer n (used once n is small enough to form). */
-function log10CostAt(cls: ComplexityClass, n: number): number {
+function log10CostAt(cls: FixedClass, n: number): number {
   switch (cls) {
     case 'expPhi':
       return n * Math.log10(PHI);
     case 'exp2':
       return n * Math.log10(2);
+    case 'n2exp2':
+      return 2 * Math.log10(n) + n * Math.log10(2);
     case 'fact':
       return lnFactorial(n) / Math.LN10;
     default:
@@ -59,7 +63,7 @@ export type WallResult =
 const EXACT_LIMIT = 15;
 
 /** Largest n whose cost f(n) fits in `ops` operations. */
-export function largestN(cls: ComplexityClass, ops: number): WallResult {
+export function largestN(cls: FixedClass, ops: number): WallResult {
   if (cls === '1') return { kind: 'unbounded' };
   const target = Math.log10(ops);
   const fits = (x: number) => log10Cost(cls, x) <= target;

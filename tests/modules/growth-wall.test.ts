@@ -28,6 +28,10 @@ describe('growth-rate wall', () => {
     expect(n).toBeLessThan(31_622);
   });
 
+  it('n²·2ⁿ fits 21 where 2ⁿ fits 29 at 10^9 ops', () => {
+    expect(largestN('n2exp2', 1e9)).toEqual({ kind: 'exact', n: 21 });
+  });
+
   it('log n and constant are effectively unbounded', () => {
     expect(largestN('1', 1e9).kind).toBe('unbounded');
     const r = largestN('logn', 1e9);

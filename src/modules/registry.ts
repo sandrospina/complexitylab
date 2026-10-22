@@ -19,6 +19,25 @@ import type { SortInput, SortInputKind } from '../algorithms/sort/input';
 import { insertionSort } from '../algorithms/sort/insertion';
 import { mergeSort } from '../algorithms/sort/merge';
 import { quickNaive, quickRandom } from '../algorithms/sort/quick';
+import { knapsackBrute } from '../algorithms/knapsack/brute';
+import { knapsackDp } from '../algorithms/knapsack/dp';
+import { makeKnapsackInput } from '../algorithms/knapsack/input';
+import type { KnapsackInput, KnapsackKind, KnapsackResult } from '../algorithms/knapsack/input';
+import { subsetSumBrute } from '../algorithms/subset-sum/brute';
+import { makeSolveInput as makeSubsetSumInput, makeVerifyInput } from '../algorithms/subset-sum/input';
+import type { Certificate, SubsetSumInput } from '../algorithms/subset-sum/input';
+import { verifySubsetSum } from '../algorithms/subset-sum/verify';
+import type { VerifyResult } from '../algorithms/subset-sum/verify';
+import { makeCheckInput, makeSolveInput } from '../algorithms/sudoku/board';
+import type { Board } from '../algorithms/sudoku/board';
+import { checkSudoku } from '../algorithms/sudoku/check';
+import type { CheckResult } from '../algorithms/sudoku/check';
+import { solveSudoku } from '../algorithms/sudoku/solve';
+import { tspBrute } from '../algorithms/tsp/brute';
+import { tspHeldKarp } from '../algorithms/tsp/held-karp';
+import { tspHeuristic } from '../algorithms/tsp/heuristic';
+import { makeTspInput } from '../algorithms/tsp/input';
+import type { TspInput, TspKind, TspResult } from '../algorithms/tsp/input';
 import type { ComplexityClass } from '../engine/complexity';
 import type { OpKind } from '../engine/events';
 import type { Rng } from '../engine/rng';
@@ -51,6 +70,13 @@ export interface InputKindSpec<K extends string = string> {
   id: K;
   label: string;
   random?: boolean;
+  /** Benchmark sizes for this kind, overriding the spec's; used when n means something else here. */
+  sizes?: number[];
+  /** What n measures for this kind, e.g. "bits of W"; defaults to the input size. */
+  xLabel?: string;
+  /** 'median' of `trials` runs per n, for random kinds whose cost is heavy-tailed. */
+  aggregate?: 'mean' | 'median';
+  trials?: number;
 }
 
 export type AnyAlgorithmSpec = AlgorithmSpec<unknown, unknown>;
@@ -59,11 +85,16 @@ function define<I, R, K extends string>(spec: AlgorithmSpec<I, R, K>): AnyAlgori
   return spec as unknown as AnyAlgorithmSpec;
 }
 
-/** Benchmark sizes for a spec: its own list, or powers of two from 16 up to its maxBenchN. */
-export function benchSizes(spec: AnyAlgorithmSpec, from = 16): number[] {
+/**
+ * Benchmark sizes for a spec on an input kind: the kind's own list, else the spec's, else
+ * powers of two from 16 up to its maxBenchN.
+ */
+export function benchSizes(spec: AnyAlgorithmSpec, kind?: string): number[] {
+  const own = spec.inputKinds.find((k) => k.id === kind)?.sizes;
+  if (own) return own;
   if (spec.benchSizes) return spec.benchSizes.filter((n) => n <= spec.maxBenchN);
   const sizes: number[] = [];
-  for (let n = from; n <= spec.maxBenchN; n *= 2) sizes.push(n);
+  for (let n = 16; n <= spec.maxBenchN; n *= 2) sizes.push(n);
   return sizes;
 }
 
@@ -126,6 +157,28 @@ const dijkstra = (s: GraphSpec<DijkstraKind>) =>
     makeInput: makeDijkstraInput,
     maxAnimN: 30,
     maxBenchN: 2 ** 10,
+    metric: 'total',
+    ...s,
+  });
+
+/** Even n up to `to`, for exponential algorithms. */
+const evens = (from: number, to: number) => Array.from({ length: (to - from) / 2 + 1 }, (_, i) => from + 2 * i);
+
+const BITS_SIZES = evens(4, 18);
+
+/** Knapsack kinds; `items` sizes are the spec's own (exponential brute force needs small n). */
+const knapsackKinds = (items?: number[]): InputKindSpec<KnapsackKind>[] => [
+  { id: 'items', label: 'n items, capacity W = 8n', random: true, sizes: items },
+  { id: 'bits', label: '10 items, capacity W = 2ᵇ − 1', random: true, sizes: BITS_SIZES, xLabel: 'bits of W' },
+];
+
+const knapsack = (s: Omit<AlgorithmSpec<KnapsackInput, KnapsackResult, KnapsackKind>, 'makeInput' | 'metric' | 'maxAnimN'>) =>
+  define<KnapsackInput, KnapsackResult, KnapsackKind>({ makeInput: makeKnapsackInput, metric: 'total', maxAnimN: 8, ...s });
+
+const tsp = (s: Omit<AlgorithmSpec<TspInput, TspResult, TspKind>, 'inputKinds' | 'makeInput' | 'metric'>) =>
+  define<TspInput, TspResult, TspKind>({
+    inputKinds: [{ id: 'random', label: 'Cities uniform in a square', random: true }],
+    makeInput: makeTspInput,
     metric: 'total',
     ...s,
   });
@@ -230,6 +283,119 @@ export const MODULES: ModuleSpec[] = [
         name: 'Dijkstra (binary heap)',
         generator: dijkstraHeap,
         expected: { degree: 'nlogn', complete: 'n2logn' },
+      }),
+    ],
+  },
+  {
+    id: 'verify',
+    title: 'Verify vs solve',
+    algorithms: [
+      define<Board, CheckResult, 'side'>({
+        id: 'verify/sudoku-check',
+        name: 'Sudoku checker',
+        generator: checkSudoku,
+        inputKinds: [
+          { id: 'side', label: 'Solved board of side s', sizes: [4, 6, 8, 9, 10, 12, 15, 16, 20, 25], xLabel: 'board side s' },
+        ],
+        makeInput: makeCheckInput,
+        maxAnimN: 9,
+        maxBenchN: 25,
+        metric: 'total',
+        // s² cells, each read in its row, column and box.
+        expected: { side: 'n2' },
+      }),
+      define<Board, Board | undefined, 'blanks'>({
+        id: 'verify/sudoku-solve',
+        name: 'Sudoku solver (backtracking)',
+        generator: solveSudoku,
+        inputKinds: [
+          {
+            id: 'blanks',
+            label: 'Blank cells on a fixed 9 × 9',
+            random: true,
+            // Below ~32 blanks the cost is mostly checking placements, not backtracking.
+            sizes: [32, 36, 40, 44, 48, 52, 56],
+            xLabel: 'blank cells',
+            aggregate: 'median',
+          },
+        ],
+        makeInput: makeSolveInput,
+        maxAnimN: 81,
+        maxBenchN: 81,
+        metric: 'total',
+        expected: { blanks: 'expc' },
+      }),
+      define<Certificate, VerifyResult, 'valid'>({
+        id: 'verify/subset-check',
+        name: 'Subset-sum verifier',
+        generator: verifySubsetSum,
+        inputKinds: [{ id: 'valid', label: 'n numbers and a valid certificate', random: true }],
+        makeInput: makeVerifyInput,
+        maxAnimN: 16,
+        maxBenchN: 2 ** 16,
+        metric: 'total',
+        expected: { valid: 'n' },
+      }),
+      define<SubsetSumInput, number[] | undefined, 'none'>({
+        id: 'verify/subset-solve',
+        name: 'Subset-sum search',
+        generator: subsetSumBrute,
+        inputKinds: [{ id: 'none', label: 'Even numbers, odd target (no solution)', random: true }],
+        makeInput: makeSubsetSumInput,
+        maxAnimN: 16,
+        maxBenchN: 22,
+        benchSizes: evens(4, 22),
+        metric: 'total',
+        expected: { none: 'exp2' },
+      }),
+    ],
+  },
+  {
+    id: 'knapsack',
+    title: 'Knapsack',
+    algorithms: [
+      knapsack({
+        id: 'knapsack/brute',
+        name: 'Brute force (all subsets)',
+        generator: knapsackBrute,
+        inputKinds: knapsackKinds(evens(4, 22)),
+        maxBenchN: 22,
+        expected: { items: 'exp2', bits: '1' },
+        expectedMem: { items: 'n', bits: '1' },
+      }),
+      knapsack({
+        id: 'knapsack/dp',
+        name: 'Dynamic programming',
+        generator: knapsackDp,
+        inputKinds: knapsackKinds(),
+        maxBenchN: 2 ** 9,
+        expected: { items: 'n2', bits: 'exp2' },
+        expectedMem: { items: 'n2', bits: 'exp2' },
+      }),
+    ],
+  },
+  {
+    id: 'tsp',
+    title: 'TSP',
+    algorithms: [
+      tsp({ id: 'tsp/brute', name: 'Brute force (all tours)', generator: tspBrute, maxAnimN: 10, maxBenchN: 10, benchSizes: [4, 5, 6, 7, 8, 9, 10], expected: { random: 'fact' } }),
+      tsp({
+        id: 'tsp/held-karp',
+        name: 'Held–Karp',
+        generator: tspHeldKarp,
+        maxAnimN: 16,
+        maxBenchN: 16,
+        benchSizes: [4, 6, 8, 10, 12, 14, 16],
+        expected: { random: 'n2exp2' },
+      }),
+      tsp({
+        id: 'tsp/heuristic',
+        name: 'Nearest neighbour + 2-opt',
+        generator: tspHeuristic,
+        maxAnimN: 20,
+        maxBenchN: 2 ** 9,
+        // Nearest neighbour is n²; 2-opt passes are n² each and grow slowly in number (≈ log n).
+        expected: { random: 'n2logn' },
       }),
     ],
   },

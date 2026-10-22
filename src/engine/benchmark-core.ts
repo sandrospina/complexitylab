@@ -39,7 +39,12 @@ const TRIAL_OPS = 2e6;
 export function* benchmark(req: BenchmarkRequest): Generator<BenchmarkPoint> {
   const spec = findAlgorithm(req.algoId);
   const budget = req.budget ?? DEFAULT_BENCH_BUDGET;
-  const trials = spec.inputKinds.find((k) => k.id === req.inputKind)?.random ? RANDOM_TRIALS : 1;
+  const kind = spec.inputKinds.find((k) => k.id === req.inputKind);
+  if (kind?.aggregate === 'median') {
+    yield* medianBenchmark(req, kind.trials ?? MEDIAN_TRIALS);
+    return;
+  }
+  const trials = kind?.random ? RANDOM_TRIALS : 1;
   for (const n of req.nValues) {
     if (n > spec.maxBenchN) break;
     const rng = mulberry32(req.seed + n);
@@ -57,6 +62,37 @@ export function* benchmark(req: BenchmarkRequest): Generator<BenchmarkPoint> {
       truncated = run.truncated;
     }
     yield { algoId: req.algoId, n, ops: ops / t, peakMem, peakStack, truncated };
+    if (truncated) break;
+  }
+}
+
+export const MEDIAN_TRIALS = 64;
+
+/**
+ * For heavy-tailed costs (a few random inputs cost orders of magnitude more), the median of
+ * many trials. A trial that hits the budget counts as infinitely expensive, so the point is
+ * only truncated once half the trials are.
+ */
+function* medianBenchmark(req: BenchmarkRequest, trials: number): Generator<BenchmarkPoint> {
+  const spec = findAlgorithm(req.algoId);
+  const budget = req.budget ?? DEFAULT_BENCH_BUDGET;
+  for (const n of req.nValues) {
+    if (n > spec.maxBenchN) break;
+    const rng = mulberry32(req.seed + n);
+    const ys: number[] = [];
+    let peakMem = 0;
+    let peakStack = 0;
+    for (let t = 0; t < trials; t++) {
+      const run = runCount(spec.generator, spec.makeInput(n, req.inputKind, rng, req.param), { budget });
+      const c = run.counters;
+      ys.push(run.truncated ? Infinity : spec.metric === 'total' ? c.totalOps : c.ops[spec.metric]);
+      peakMem = Math.max(peakMem, c.peakMem);
+      peakStack = Math.max(peakStack, c.peakStack);
+    }
+    ys.sort((a, b) => a - b);
+    const median = (ys[(trials - 1) >> 1]! + ys[trials >> 1]!) / 2;
+    const truncated = !Number.isFinite(median);
+    yield { algoId: req.algoId, n, ops: truncated ? 0 : median, peakMem, peakStack, truncated };
     if (truncated) break;
   }
 }

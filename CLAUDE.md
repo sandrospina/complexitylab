@@ -20,6 +20,9 @@ Vite + React + TypeScript (strict), Zustand, D3/Observable Plot, Vitest, Playwri
   `yield*` generator, so real recursion of depth d makes each step cost O(d).
 - Register every algorithm in src/modules/registry.ts with its expected class per input kind;
   tests/engine/benchmark.test.ts checks the measured class of every algorithm × input kind.
+  An input kind may set its own benchmark `sizes`, an `xLabel` when n is not the input size
+  (e.g. bits of W, blank cells), and `aggregate: 'median'` for heavy-tailed random costs.
+- Full solves of large instances go through src/engine/solve.ts (a Web Worker), never the main thread.
 - Each module lives in src/modules/<name>/ and composes the three shared views:
   AlgorithmView, MemoryView, ScalingView.
 
