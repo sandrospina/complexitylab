@@ -42,10 +42,11 @@ CNF types, DIMACS, random k-SAT; clause editor with colouring and incidence grap
 **Gate:** a standalone SAT lecture runs; phase-transition plot peaks near 4.26.
 Notes: the lecture is a 7-step Lecture tab whose "Show me" buttons load each step's formula, settings and experiment. Audits: truth table O(2ⁿ) on ratio-10 (unsatisfiable) formulas; backtracking and DPLL O(cⁿ) at ratio 4.26 by the median of 64 formulas, measured from n = 20 because below that DPLL's cost is mostly per-node propagation (bases ≈ 1.46 backtracking, 1.13 first variable, 1.08 MOMS and Jeroslow–Wang). The phase transition runs at n = 40 on a 0.25 grid (n = 20 is too flat), with effort counted in decisions, since total ops keep growing with the clause count; measured peak 4.50, 50 % satisfiable at 4.35.
 
-## M6 — Reductions to SAT
+## M6 — Reductions to SAT ✅
 `encode` / `decode` / `verify` interface with clause-origin map; pipeline UI with two-way highlighting; 3-colouring, k-clique, Hamiltonian cycle, Sudoku, Tseitin (with circuit editor); clause counter with fitted polynomial; break-it mode; direction quiz; Cook–Levin teaser.
 **Tests:** for all small instances, CNF satisfiable ⇔ brute force finds a solution; decoded solutions verify; clause counts match size formulas.
 **Gate 3:** an instructor can run a full NP-completeness lecture from the app.
+Notes: encoders are instrumented generators (one write per clause) registered under `reductions/`, so the audit checks each encoding's growth: 3-colouring and Tseitin O(n), 3-clique and Sudoku (over cells) O(n²), Hamiltonian cycle O(n³), Cook–Levin O(T). Cook–Levin uses a toy bit-flipping machine; its formula is satisfiable exactly when T ≥ input length + 1, and DPLL recovers the run by propagation alone. Break-it mode solves with the plainest DPLL (first variable, true first) so dropped families show up as wrong decodes. The lecture tab (9 steps) shares `src/views/Lecture.tsx` with the SAT module.
 
 ## M7 — Engagement layer
 Predict-then-run scoring from fit residuals in every module; mystery-algorithm module; declarative challenge cards and badges (localStorage, guarded); data-driven guided tours; progressive disclosure.

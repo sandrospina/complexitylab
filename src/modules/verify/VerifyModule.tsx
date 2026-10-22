@@ -21,6 +21,7 @@ import {
 import type { Size, Tab, VerifyAlgo } from '../../store/verify';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
+import { SudokuGrid } from '../../views/SudokuGrid';
 import { MemoryView } from '../../views/MemoryView';
 import { ScalingView } from '../../views/ScalingView';
 import type { ScalingSeries } from '../../views/ScalingView';
@@ -49,44 +50,6 @@ function useSeries(algos: VerifyAlgo[]): ScalingSeries[] {
 }
 
 const xLabel = (a: VerifyAlgo) => findAlgorithm(verifyAlgoId(a)).inputKinds[0]!.xLabel ?? 'input size n';
-
-function SudokuGrid({ board, givens, focus, onSet }: { board: Board; givens: number[]; focus?: number; onSet: (i: number, v: number) => void }) {
-  const s = side(board);
-  return (
-    <div
-      className="sudoku"
-      style={{ gridTemplateColumns: `repeat(${s}, minmax(0, 1fr))`, maxWidth: s * 44 }}
-      role="grid"
-      aria-label={`${s} × ${s} Sudoku`}
-    >
-      {board.cells.map((v, i) => {
-        const row = Math.floor(i / s);
-        const col = i % s;
-        const edge = `${col % board.c === board.c - 1 && col < s - 1 ? ' box-right' : ''}${row % board.r === board.r - 1 && row < s - 1 ? ' box-bottom' : ''}`;
-        const label = `Row ${row + 1}, column ${col + 1}`;
-        return givens[i] ? (
-          <div key={i} role="gridcell" className={`sc given${edge}${focus === i ? ' focus' : ''}`} aria-label={`${label}, given ${v}`}>
-            {v}
-          </div>
-        ) : (
-          <input
-            key={i}
-            role="gridcell"
-            className={`sc${edge}${focus === i ? ' focus' : ''}`}
-            inputMode="numeric"
-            maxLength={1}
-            value={v || ''}
-            aria-label={label}
-            onChange={(e) => {
-              const d = Number(e.target.value.slice(-1));
-              onSet(i, Number.isInteger(d) && d >= 1 && d <= s ? d : 0);
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 function SudokuTab() {
   const { size, seed, entries, step, benchRunning } = useVerifyStore();

@@ -1,11 +1,5 @@
 import { useSatStore } from '../../store/sat';
-
-export interface LectureStep {
-  title: string;
-  text: string;
-  /** What the "Show me" button sets up. */
-  show: () => void;
-}
+import type { LectureStep } from '../../views/Lecture';
 
 const store = () => useSatStore.getState();
 const workspace = (patch: Parameters<ReturnType<typeof store>['configure']>[0]) => {

@@ -28,11 +28,24 @@ import { makeSolveInput as makeSubsetSumInput, makeVerifyInput } from '../algori
 import type { Certificate, SubsetSumInput } from '../algorithms/subset-sum/input';
 import { verifySubsetSum } from '../algorithms/subset-sum/verify';
 import type { VerifyResult } from '../algorithms/subset-sum/verify';
+import type { Graph } from '../algorithms/graph/graph';
+import { randomCircuit } from '../algorithms/reductions/circuit';
+import type { Circuit } from '../algorithms/reductions/circuit';
+import { clique } from '../algorithms/reductions/clique';
+import type { CliqueInstance } from '../algorithms/reductions/clique';
+import { coloring } from '../algorithms/reductions/coloring';
+import { cookLevin } from '../algorithms/reductions/cook-levin';
+import type { MachineRun } from '../algorithms/reductions/cook-levin';
+import { gnp, randomGraph } from '../algorithms/reductions/graph-util';
+import { hamiltonian } from '../algorithms/reductions/hamiltonian';
+import { sudoku } from '../algorithms/reductions/sudoku';
+import { tseitin } from '../algorithms/reductions/tseitin';
+import type { Encoding, ReductionInput } from '../algorithms/reductions/types';
 import { dpll } from '../algorithms/sat/dpll';
 import { makeSatInput } from '../algorithms/sat/input';
 import type { SatInput, SatKind, SatResult } from '../algorithms/sat/input';
 import { truthTable } from '../algorithms/sat/truth-table';
-import { makeCheckInput, makeSolveInput } from '../algorithms/sudoku/board';
+import { blank, BOX_SHAPES, makeCheckInput, makeSolveInput, solvedBoard } from '../algorithms/sudoku/board';
 import type { Board } from '../algorithms/sudoku/board';
 import { checkSudoku } from '../algorithms/sudoku/check';
 import type { CheckResult } from '../algorithms/sudoku/check';
@@ -221,6 +234,27 @@ const sat = (
     // Each spec lists only the kinds it is audited on: the truth table's worst case, or the threshold.
     expected: s.expected as Record<SatKind, ComplexityClass>,
   });
+
+/**
+ * Encoders count one write per clause, so their "ops" are the encoding's size: the audit
+ * checks that each reduction stays polynomial, and by how much.
+ */
+const encoder = <I, K extends string>(
+  s: Omit<AlgorithmSpec<ReductionInput<I>, Encoding, K>, 'metric' | 'maxAnimN' | 'makeInput' | 'expected'> & {
+    instance: (n: number, rng: Rng) => I;
+    expected: ComplexityClass;
+  },
+) => {
+  const { instance, expected, ...rest } = s;
+  const kind = rest.inputKinds[0]!.id;
+  return define<ReductionInput<I>, Encoding, K>({
+    metric: 'write',
+    maxAnimN: 30,
+    makeInput: (n, _kind, rng) => ({ instance: instance(n, rng), omit: [] }),
+    expected: { [kind]: expected } as Record<K, ComplexityClass>,
+    ...rest,
+  });
+};
 
 export const MODULES: ModuleSpec[] = [
   {
@@ -477,6 +511,71 @@ export const MODULES: ModuleSpec[] = [
         inputKinds: [satThreshold(steps(20, 80, 5))],
         makeInput: makeSatInput({ heuristic: 'jw', propagate: true, pure: true }),
         expected: { threshold: 'expc' },
+      }),
+    ],
+  },
+  {
+    id: 'reductions',
+    title: 'NP-completeness',
+    algorithms: [
+      encoder<Graph, 'sparse'>({
+        id: 'reductions/coloring',
+        name: '3-colouring → SAT',
+        generator: coloring.encode,
+        inputKinds: [{ id: 'sparse', label: 'Random graphs with E = 2V', random: true, xLabel: 'vertices V' }],
+        instance: (n, rng) => randomGraph(n, 2 * n, rng),
+        maxBenchN: 2 ** 12,
+        expected: 'n',
+      }),
+      encoder<CliqueInstance, 'half'>({
+        id: 'reductions/clique',
+        name: '3-clique → SAT',
+        generator: clique.encode,
+        inputKinds: [{ id: 'half', label: 'G(V, ½), k = 3', random: true, xLabel: 'vertices V' }],
+        instance: (n, rng) => ({ g: gnp(n, 0.5, rng), k: 3 }),
+        maxBenchN: 512,
+        expected: 'n2',
+      }),
+      encoder<Graph, 'half'>({
+        id: 'reductions/hamiltonian',
+        name: 'Hamiltonian cycle → SAT',
+        generator: hamiltonian.encode,
+        inputKinds: [{ id: 'half', label: 'G(V, ½)', random: true, xLabel: 'vertices V', sizes: steps(8, 48, 8) }],
+        instance: (n, rng) => gnp(n, 0.5, rng),
+        maxBenchN: 64,
+        expected: 'n3',
+      }),
+      encoder<Board, 'cells'>({
+        id: 'reductions/sudoku',
+        name: 'Sudoku → SAT',
+        generator: sudoku.encode,
+        inputKinds: [{ id: 'cells', label: 'Half-blank boards of N cells', random: true, xLabel: 'cells N', sizes: [16, 36, 64, 81, 100, 144, 225, 256] }],
+        instance: (n, rng) => {
+          const [r, c] = BOX_SHAPES[Math.round(Math.sqrt(n))]!;
+          return blank(solvedBoard(r, c, rng), Math.floor(n / 2), rng);
+        },
+        maxBenchN: 256,
+        // s⁴ clauses on s² cells: quadratic in the number of cells.
+        expected: 'n2',
+      }),
+      encoder<Circuit, 'random'>({
+        id: 'reductions/tseitin',
+        name: 'Circuit → 3-SAT (Tseitin)',
+        generator: tseitin.encode,
+        inputKinds: [{ id: 'random', label: 'Random circuits of n gates', random: true, xLabel: 'gates n' }],
+        instance: (n, rng) => randomCircuit(n, rng),
+        maxBenchN: 2 ** 12,
+        expected: 'n',
+      }),
+      encoder<MachineRun, 'steps'>({
+        id: 'reductions/cook-levin',
+        name: 'Machine run → SAT (Cook–Levin)',
+        generator: cookLevin.encode,
+        inputKinds: [{ id: 'steps', label: '4 input bits, T steps', random: true, xLabel: 'steps T' }],
+        instance: (n, rng) => ({ input: Array.from({ length: 4 }, () => (rng() < 0.5 ? 0 : 1)), T: n }),
+        maxBenchN: 2 ** 9,
+        // A fixed-width tape: one row of window clauses per step.
+        expected: 'n',
       }),
     ],
   },

@@ -17,6 +17,7 @@ export const ROUTES: Route[] = [
   { id: 'tsp', title: 'TSP', component: lazy(() => import('../modules/tsp/TspModule')) },
   { id: 'verify', title: 'Verify vs solve', component: lazy(() => import('../modules/verify/VerifyModule')) },
   { id: 'sat', title: 'SAT', component: lazy(() => import('../modules/sat/SatModule')) },
+  { id: 'reductions', title: 'NP-completeness', component: lazy(() => import('../modules/reductions/ReductionsModule')) },
   {
     id: 'growth-wall',
     title: 'Growth-rate wall',

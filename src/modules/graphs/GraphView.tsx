@@ -14,6 +14,14 @@ interface Props {
   /** The vertex being processed. */
   current?: number;
   showWeights?: boolean;
+  /** Fill colour per vertex (e.g. a decoded colouring); overrides the trace colours. */
+  vertexColor?: (v: number) => string | undefined;
+  /** Vertices and edges ("u-v", u < v) to emphasise, e.g. those a hovered clause mentions. */
+  highlight?: { vertices: Set<number>; edges: Set<string> };
+  /** Extra class per edge, e.g. "chosen" for a decoded tour. */
+  edgeClass?: (u: number, v: number) => string | undefined;
+  /** Hovering or focusing a vertex or an edge; undefined when it leaves. */
+  onHover?: (part: { vertex: number } | { edge: [number, number] } | undefined) => void;
   /** Editing callbacks; without them the drawing is read-only. */
   edit?: {
     mode: 'edges' | 'source';
@@ -26,7 +34,7 @@ interface Props {
 const R = 14;
 
 /** A drawn graph. In edit mode: click empty space for a vertex, two vertices for an edge. */
-export function GraphView({ graph, source, label, state, current, showWeights, edit }: Props) {
+export function GraphView({ graph, source, label, state, current, showWeights, vertexColor, highlight, edgeClass, onHover, edit }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const [selected, setSelected] = useState<number | undefined>();
   const pos = graph.pos ?? [];
@@ -63,6 +71,7 @@ export function GraphView({ graph, source, label, state, current, showWeights, e
       v === current ? 'current' : inFrontier.has(v) ? 'frontier' : state?.done[v] ? 'done' : '',
       v === source ? 'source' : '',
       v === selected ? 'selected' : '',
+      highlight?.vertices.has(v) ? 'lit' : '',
     ].join(' ');
 
   return (
@@ -81,8 +90,14 @@ export function GraphView({ graph, source, label, state, current, showWeights, e
         const len = Math.hypot(x2 - x1, y2 - y1) || 1;
         const [nx, ny] = [-(y2 - y1) / len, (x2 - x1) / len];
         return (
-          <g key={`${u}-${v}`} className="ge">
+          <g
+            key={`${u}-${v}`}
+            className={['ge', highlight?.edges.has(`${u}-${v}`) ? 'lit' : '', edgeClass?.(u, v) ?? ''].join(' ')}
+            onMouseEnter={onHover && (() => onHover({ edge: [u, v] }))}
+            onMouseLeave={onHover && (() => onHover(undefined))}
+          >
             <line x1={x1} y1={y1} x2={x2} y2={y2} />
+            {onHover && <line className="hit" x1={x1} y1={y1} x2={x2} y2={y2} />}
             {showWeights && (
               <text x={(x1 + x2) / 2 + nx * 10} y={(y1 + y2) / 2 + ny * 10 + 4} textAnchor="middle">
                 {w}
@@ -105,8 +120,12 @@ export function GraphView({ graph, source, label, state, current, showWeights, e
             aria-pressed={edit ? selected === v : undefined}
             onClick={edit ? () => pick(v) : undefined}
             onKeyDown={edit ? (e) => onKey(e, v) : undefined}
+            onMouseEnter={onHover && (() => onHover({ vertex: v }))}
+            onMouseLeave={onHover && (() => onHover(undefined))}
+            onFocus={onHover && (() => onHover({ vertex: v }))}
+            onBlur={onHover && (() => onHover(undefined))}
           >
-            <circle r={R} />
+            <circle r={R} style={vertexColor?.(v) ? { fill: vertexColor(v) } : undefined} />
             <text y={4} textAnchor="middle">
               {v}
             </text>
