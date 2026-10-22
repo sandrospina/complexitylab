@@ -14,6 +14,12 @@ interface Props {
   reference?: CallNode[];
   /** Current timeline step: calls on the stack are highlighted, returned ones filled. */
   step: number;
+  /** Text inside a node; defaults to its subproblem size. */
+  nodeText?: (node: CallNode) => string;
+  /** Extra classes for a node once it has started, e.g. 'conflict'. */
+  nodeClass?: (node: CallNode) => string | undefined;
+  /** What the tree's nodes are, for its accessible name. */
+  noun?: string;
 }
 
 const WIDTH = 640;
@@ -56,7 +62,7 @@ function useTween(target: Layout): Layout {
 }
 
 /** The call tree as nodes and links, one row per depth. */
-export function CallTreeView({ nodes, reference = nodes, step }: Props) {
+export function CallTreeView({ nodes, reference = nodes, step, nodeText, nodeClass, noun = 'calls' }: Props) {
   const { full, run, height, r, target } = useMemo(() => {
     const full = layoutCallTree(reference);
     const run = layoutCallTree(nodes);
@@ -85,7 +91,7 @@ export function CallTreeView({ nodes, reference = nodes, step }: Props) {
       viewBox={`0 0 ${WIDTH} ${height}`}
       className="tree-svg call-tree"
       role="img"
-      aria-label={`Call tree with ${run.placed.length} calls, ${run.depth} deep`}
+      aria-label={`${noun === 'calls' ? 'Call' : 'Search'} tree with ${run.placed.length} ${noun}, ${run.depth} deep`}
     >
       {full.placed.map((p) => {
         const a = shown.get(p.key);
@@ -99,14 +105,16 @@ export function CallTreeView({ nodes, reference = nodes, step }: Props) {
         const call = live.get(p.key);
         // A call that the reference expands but the run answered at once: a memo hit.
         const hit = call !== undefined && call.leaf && internal.has(p.key);
-        const cls = `tree-node ${call ? state(call.node) : 'pending'}${hit ? ' hit' : ''}`;
+        const st = call ? state(call.node) : 'pending';
+        const extra = call && st !== 'pending' ? nodeClass?.(call.node) : undefined;
+        const cls = `tree-node ${st}${hit ? ' hit' : ''}${extra ? ` ${extra}` : ''}`;
         return (
           <g key={p.key} className={cls} transform={`translate(${a.x} ${a.y})`} opacity={a.o}>
             <title>{`${p.node.label}${hit ? ': memo hit' : ''}`}</title>
             <circle r={r} />
             {r >= 6 && (
               <text y={Math.min(4, r * 0.4)} textAnchor="middle" fontSize={Math.min(11, r * 1.3)}>
-                {p.node.size}
+                {nodeText ? nodeText(p.node) : p.node.size}
               </text>
             )}
           </g>

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { solveInWorker } from '../engine/solve';
+import type { Counters } from '../engine/instrument';
 import type { SolveResponse } from '../engine/solve.worker';
 
 export type Solve<R> =
   | { status: 'idle' }
   | { status: 'running' }
-  | { status: 'done'; result: R | undefined; ops: number; peakMem: number; truncated: boolean };
+  | { status: 'done'; result: R | undefined; ops: number; peakMem: number; counters: Counters; truncated: boolean };
 
 /**
  * The full solve of `input` by `algoId`, computed off the main thread and redone whenever
@@ -22,7 +23,7 @@ export function useSolve<R>(algoId: string, input: unknown): Solve<R> {
         input,
         solve: r.error
           ? { status: 'idle' }
-          : { status: 'done', result: r.result as R, ops: r.counters.totalOps, peakMem: r.counters.peakMem, truncated: r.truncated },
+          : { status: 'done', result: r.result as R, ops: r.counters.totalOps, peakMem: r.counters.peakMem, counters: r.counters, truncated: r.truncated },
       }),
     );
   }, [algoId, input]);

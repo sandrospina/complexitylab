@@ -1,5 +1,5 @@
-import type { BenchmarkPoint, BenchmarkRequest } from './benchmark-core';
-import type { WorkerMessage } from './benchmark.worker';
+import type { BenchmarkPoint, BenchmarkRequest, SweepPoint, SweepRequest } from './benchmark-core';
+import type { WorkerMessage, WorkerRequest } from './benchmark.worker';
 
 export interface BenchmarkHandlers {
   onPoint: (p: BenchmarkPoint) => void;
@@ -19,8 +19,27 @@ export function runBenchmark(req: BenchmarkRequest, h: BenchmarkHandlers): () =>
       h.onDone();
     }
   };
-  worker.postMessage(req);
+  worker.postMessage({ type: 'benchmark', ...req } satisfies WorkerRequest);
   return () => worker.terminate();
+}
+
+/** Runs parameter sweeps in parallel workers, one per request. */
+export function runSweeps(reqs: SweepRequest[], onPoint: (p: SweepPoint) => void, onAllDone: () => void): () => void {
+  let pending = reqs.length;
+  const workers = reqs.map((req) => {
+    const worker = new Worker(new URL('./benchmark.worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
+      const m = e.data;
+      if (m.type === 'sweepPoint') onPoint(m.point);
+      else if (m.type === 'done' || m.type === 'error') {
+        worker.terminate();
+        if (--pending === 0) onAllDone();
+      }
+    };
+    worker.postMessage({ type: 'sweep', ...req } satisfies WorkerRequest);
+    return worker;
+  });
+  return () => workers.forEach((w) => w.terminate());
 }
 
 export const powersOfTwo = (from: number, to: number) =>

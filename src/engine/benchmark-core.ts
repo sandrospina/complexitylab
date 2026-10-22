@@ -96,3 +96,61 @@ function* medianBenchmark(req: BenchmarkRequest, trials: number): Generator<Benc
     if (truncated) break;
   }
 }
+
+export interface SweepRequest {
+  algoId: string;
+  n: number;
+  inputKind: string;
+  /** Values of the spec's makeInput `param` to sweep, e.g. clause/variable ratios. */
+  params: number[];
+  trials: number;
+  seed: number;
+  budget?: Budget;
+}
+
+export interface SweepPoint {
+  algoId: string;
+  param: number;
+  medianOps: number;
+  medianDecisions: number;
+  /** Fraction of trials with a defined result (for SAT: satisfiable). */
+  success: number;
+  /** Trials stopped by the budget; they count as infinitely expensive in the medians. */
+  truncated: number;
+}
+
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return (s[(s.length - 1) >> 1]! + s[s.length >> 1]!) / 2;
+};
+
+/**
+ * Fixed n, varying the input parameter: `trials` seeded inputs per value, summarised by
+ * medians and the success rate. For the SAT phase transition and the heuristic shoot-out.
+ */
+export function* sweep(req: SweepRequest): Generator<SweepPoint> {
+  const spec = findAlgorithm(req.algoId);
+  const budget = req.budget ?? DEFAULT_BENCH_BUDGET;
+  for (const param of req.params) {
+    const rng = mulberry32(req.seed + Math.round(param * 1000));
+    const ops: number[] = [];
+    const decisions: number[] = [];
+    let successes = 0;
+    let truncated = 0;
+    for (let t = 0; t < req.trials; t++) {
+      const run = runCount(spec.generator, spec.makeInput(req.n, req.inputKind, rng, param), { budget });
+      if (run.truncated) truncated++;
+      else if (run.result !== undefined) successes++;
+      ops.push(run.truncated ? Infinity : spec.metric === 'total' ? run.counters.totalOps : run.counters.ops[spec.metric]);
+      decisions.push(run.truncated ? Infinity : run.counters.ops.decide);
+    }
+    yield {
+      algoId: req.algoId,
+      param,
+      medianOps: median(ops),
+      medianDecisions: median(decisions),
+      success: successes / Math.max(1, req.trials - truncated),
+      truncated,
+    };
+  }
+}

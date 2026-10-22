@@ -36,10 +36,11 @@ Knapsack brute force vs DP with "add a bit"; TSP brute force, Held–Karp, neare
 **Gate 2:** all polynomial and exponential modules live, CI green, no UI freeze at max n.
 Notes: Sudoku is generalised to r×c boxes; the checker is audited over board side s (O(s²)) and the backtracking solver over blank cells on a fixed 9×9, by the median of 64 puzzles (costs are heavy-tailed). The solver grows like ≈1.2ⁿ, so the fitter gained O(cⁿ) with a fitted base, chosen only when it beats every fixed class by 1.25× in error. Also new: O(n²·2ⁿ) for Held–Karp; NN + 2-opt measures O(n² log n). Full solves run in a solve worker; the gate test records no main-thread task over 50 ms at max n.
 
-## M5 — SAT solvers
+## M5 — SAT solvers ✅
 CNF types, DIMACS, random k-SAT; clause editor with colouring and incidence graph; truth-table enumeration; DPLL with heuristics (first, MOMS, Jeroslow–Wang), propagation and pure-literal toggles, search tree and trail; experiments (scaling, phase transition, heuristic shoot-out) in the worker.
 **Tests:** DPLL and truth-table agree on 1,000 random small formulas; models satisfy; DIMACS round-trips; pinned decision counts.
 **Gate:** a standalone SAT lecture runs; phase-transition plot peaks near 4.26.
+Notes: the lecture is a 7-step Lecture tab whose "Show me" buttons load each step's formula, settings and experiment. Audits: truth table O(2ⁿ) on ratio-10 (unsatisfiable) formulas; backtracking and DPLL O(cⁿ) at ratio 4.26 by the median of 64 formulas, measured from n = 20 because below that DPLL's cost is mostly per-node propagation (bases ≈ 1.46 backtracking, 1.13 first variable, 1.08 MOMS and Jeroslow–Wang). The phase transition runs at n = 40 on a 0.25 grid (n = 20 is too flat), with effort counted in decisions, since total ops keep growing with the clause count; measured peak 4.50, 50 % satisfiable at 4.35.
 
 ## M6 — Reductions to SAT
 `encode` / `decode` / `verify` interface with clause-origin map; pipeline UI with two-way highlighting; 3-colouring, k-clique, Hamiltonian cycle, Sudoku, Tseitin (with circuit editor); clause counter with fitted polynomial; break-it mode; direction quiz; Cook–Levin teaser.

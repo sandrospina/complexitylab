@@ -28,6 +28,10 @@ import { makeSolveInput as makeSubsetSumInput, makeVerifyInput } from '../algori
 import type { Certificate, SubsetSumInput } from '../algorithms/subset-sum/input';
 import { verifySubsetSum } from '../algorithms/subset-sum/verify';
 import type { VerifyResult } from '../algorithms/subset-sum/verify';
+import { dpll } from '../algorithms/sat/dpll';
+import { makeSatInput } from '../algorithms/sat/input';
+import type { SatInput, SatKind, SatResult } from '../algorithms/sat/input';
+import { truthTable } from '../algorithms/sat/truth-table';
 import { makeCheckInput, makeSolveInput } from '../algorithms/sudoku/board';
 import type { Board } from '../algorithms/sudoku/board';
 import { checkSudoku } from '../algorithms/sudoku/check';
@@ -181,6 +185,41 @@ const tsp = (s: Omit<AlgorithmSpec<TspInput, TspResult, TspKind>, 'inputKinds' |
     makeInput: makeTspInput,
     metric: 'total',
     ...s,
+  });
+
+/** The truth table's worst case: random 3-SAT far above the threshold, almost surely unsatisfiable. */
+const SAT_UNSAT: InputKindSpec<SatKind> = { id: 'unsat', label: 'Random 3-SAT at ratio 10 (unsatisfiable)', random: true, sizes: evens(4, 20) };
+
+/**
+ * Search at the satisfiability threshold, by the median (costs are heavy-tailed). Below ~20
+ * variables DPLL's cost is mostly per-node propagation, not search, so sizes start there.
+ */
+const satThreshold = (sizes: number[]): InputKindSpec<SatKind> => ({
+  id: 'threshold',
+  label: 'Random 3-SAT at ratio 4.26',
+  random: true,
+  aggregate: 'median',
+  sizes,
+  xLabel: 'variables n',
+});
+
+const steps = (from: number, to: number, by: number) => Array.from({ length: (to - from) / by + 1 }, (_, i) => from + by * i);
+
+/** DPLL variants share one generator and differ in the options their inputs carry. */
+const sat = (
+  s: Omit<AlgorithmSpec<SatInput, SatResult, SatKind>, 'metric' | 'maxAnimN' | 'generator' | 'maxBenchN' | 'expected'> & {
+    generator?: AlgorithmSpec<SatInput, SatResult, SatKind>['generator'];
+    expected: Partial<Record<SatKind, ComplexityClass>>;
+  },
+) =>
+  define<SatInput, SatResult, SatKind>({
+    metric: 'total',
+    maxAnimN: 20,
+    generator: dpll,
+    maxBenchN: 100,
+    ...s,
+    // Each spec lists only the kinds it is audited on: the truth table's worst case, or the threshold.
+    expected: s.expected as Record<SatKind, ComplexityClass>,
   });
 
 export const MODULES: ModuleSpec[] = [
@@ -396,6 +435,48 @@ export const MODULES: ModuleSpec[] = [
         maxBenchN: 2 ** 9,
         // Nearest neighbour is n²; 2-opt passes are n² each and grow slowly in number (≈ log n).
         expected: { random: 'n2logn' },
+      }),
+    ],
+  },
+  {
+    id: 'sat',
+    title: 'SAT',
+    algorithms: [
+      sat({
+        id: 'sat/truth-table',
+        name: 'Truth table',
+        generator: truthTable,
+        inputKinds: [SAT_UNSAT],
+        makeInput: makeSatInput({ heuristic: 'first', propagate: false, pure: false }),
+        expected: { unsat: 'exp2' },
+      }),
+      sat({
+        id: 'sat/backtracking',
+        name: 'Backtracking',
+        inputKinds: [satThreshold(evens(8, 24))],
+        makeInput: makeSatInput({ heuristic: 'first', propagate: false, pure: false }),
+        expected: { threshold: 'expc' },
+      }),
+      sat({
+        id: 'sat/dpll-first',
+        name: 'DPLL, first variable',
+        inputKinds: [satThreshold(steps(20, 60, 5))],
+        makeInput: makeSatInput({ heuristic: 'first', propagate: true, pure: true }),
+        expected: { threshold: 'expc' },
+      }),
+      sat({
+        id: 'sat/dpll-moms',
+        name: 'DPLL, MOMS',
+        inputKinds: [satThreshold(steps(20, 80, 5))],
+        makeInput: makeSatInput({ heuristic: 'moms', propagate: true, pure: true }),
+        expected: { threshold: 'expc' },
+      }),
+      sat({
+        id: 'sat/dpll-jw',
+        name: 'DPLL, Jeroslow–Wang',
+        inputKinds: [satThreshold(steps(20, 80, 5))],
+        makeInput: makeSatInput({ heuristic: 'jw', propagate: true, pure: true }),
+        expected: { threshold: 'expc' },
       }),
     ],
   },
