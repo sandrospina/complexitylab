@@ -4,6 +4,7 @@ import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
 import { HELD_KARP, KNAPSACK_BRUTE, KNAPSACK_DP, TSP_BRUTE, TSP_HEURISTIC } from './knapsack-tsp';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
 import type { Pseudocode } from './types';
+import { SUBSET_SUM_SEARCH, SUDOKU_CHECK, SUDOKU_SOLVE, VERIFY_SUBSET_SUM } from './verify';
 
 /** Pseudocode by registry id. Algorithms that share a generator share an entry. */
 export const PSEUDOCODE: Record<string, Pseudocode> = {
@@ -35,6 +36,10 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'tsp/brute': TSP_BRUTE,
   'tsp/held-karp': HELD_KARP,
   'tsp/heuristic': TSP_HEURISTIC,
+  'verify/sudoku-check': SUDOKU_CHECK,
+  'verify/sudoku-solve': SUDOKU_SOLVE,
+  'verify/subset-check': VERIFY_SUBSET_SUM,
+  'verify/subset-solve': SUBSET_SUM_SEARCH,
 };
 
 export const pseudocodeFor = (algoId: string): Pseudocode | undefined => PSEUDOCODE[algoId];

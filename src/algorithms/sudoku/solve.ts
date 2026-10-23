@@ -11,7 +11,7 @@ import type { Board, SudokuSnapshot } from './board';
 export const solveSudoku: Algorithm<Board, Board | undefined> = function* (b, ins: Instrument) {
   const s = side(b);
   const cells = b.cells.slice();
-  yield ins.alloc<SudokuSnapshot>(cells.length, { label: 'board' });
+  yield ins.alloc<SudokuSnapshot>(cells.length, { label: 'board', line: 1 });
   const nbrs = peers(b);
   const blanks = cells.flatMap((v, i) => (v === 0 ? [i] : []));
   // tried[d]: the last value tried at the d-th blank (0: none yet).
@@ -19,14 +19,17 @@ export const solveSudoku: Algorithm<Board, Board | undefined> = function* (b, in
   let d = 0;
   if (blanks.length > 0) yield ins.pushFrame<SudokuSnapshot>({ label: `cell ${blanks[0]}`, snapshot: { cell: blanks[0] } });
 
-  while (d >= 0 && d < blanks.length) {
+  for (;;) {
+    ins.at(2);
+    if (!(d >= 0 && d < blanks.length)) break;
     const cell = blanks[d]!;
     let placed = false;
     for (let v = tried[d]! + 1; v <= s && !placed; v++) {
+      ins.at(3);
       tried[d] = v;
       let ok = true;
       for (const p of nbrs[cell]!) {
-        yield ins.compare<SudokuSnapshot>({ indices: [p], label: `${v} clashes?`, snapshot: { cell } });
+        yield ins.compare<SudokuSnapshot>({ indices: [p], label: `${v} clashes?`, snapshot: { cell }, line: 4 });
         if (cells[p] === v) {
           ok = false;
           break;
@@ -39,10 +42,12 @@ export const solveSudoku: Algorithm<Board, Board | undefined> = function* (b, in
       }
     }
     if (placed) {
+      ins.at(5);
       d++;
       if (d < blanks.length) yield ins.pushFrame<SudokuSnapshot>({ label: `cell ${blanks[d]}`, snapshot: { cell: blanks[d] } });
     } else {
       // Every value clashes: give up this cell and revise the previous one.
+      ins.at(6);
       tried[d] = 0;
       yield ins.popFrame();
       d--;
@@ -53,6 +58,7 @@ export const solveSudoku: Algorithm<Board, Board | undefined> = function* (b, in
       }
     }
   }
+  ins.at(7);
   for (let k = 0; k < Math.min(d, blanks.length); k++) yield ins.popFrame();
   yield ins.free<SudokuSnapshot>(cells.length, { label: 'board' });
   return d < 0 ? undefined : { ...b, cells };

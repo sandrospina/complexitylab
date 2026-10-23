@@ -95,12 +95,17 @@ function PseudocodeTab({ p, counters, line, n, finished }: Omit<Props, 'algoId'>
         ))}
         <p style={{ margin: 0 }} data-testid="pseudo-measured">
           Measured {finished ? 'in this run' : 'so far'}, n = {n}: the bold lines ran{' '}
-          <strong className="mono">{fmt(dominant)}</strong> times{finished && f > 0 && (
+          <strong className="mono">{fmt(dominant)}</strong> times{finished && f > 0 && p.bound !== 'expc' && (
             <>
               {' '}= <strong className="mono">{(dominant / f).toPrecision(3)}</strong> · <Tex tex={TEX_OF[p.bound]} />
             </>
           )}
-          . {finished ? `Change n and run again: if the algorithm is ${CLASS_LABEL[p.bound]} on this input, the factor stays roughly constant.` : 'Run to the end for the total.'}
+          .{' '}
+          {!finished
+            ? 'Run to the end for the total.'
+            : p.bound === 'expc'
+              ? 'The base c of this exponential is fitted from many runs: see the scaling plot.'
+              : `Change n and run again: if the algorithm is ${CLASS_LABEL[p.bound]} on this input, the factor stays roughly constant.`}
         </p>
       </section>
     </div>

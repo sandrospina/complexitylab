@@ -21,6 +21,7 @@ import {
 import type { Size, Tab, VerifyAlgo } from '../../store/verify';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
+import { CodePanel } from '../../views/CodePanel';
 import { SudokuGrid } from '../../views/SudokuGrid';
 import { MemoryView } from '../../views/MemoryView';
 import { ScalingView } from '../../views/ScalingView';
@@ -87,7 +88,11 @@ function SudokuTab() {
       </section>
 
       <div className="grid-2">
-        <AlgorithmView title="Your board, as the checker sees it" event={frame.event}>
+        <AlgorithmView
+          title="Your board, as the checker sees it"
+          event={frame.event}
+          code={{ algoId: verifyAlgoId('sudoku-check'), counters: frame.counters, n: side(board), finished: s >= check.steps.length }}
+        >
           <div className="stack">
             <SudokuGrid board={board} givens={puzzle.cells} focus={frame.snapshot?.cell} onSet={setCell} />
             <p style={{ margin: 0 }} role="status">
@@ -128,6 +133,9 @@ function SudokuTab() {
               The checker reads each cell three times (row, column, box): {3 * side(board) ** 2} reads at most, whatever the
               puzzle. The solver guesses, checks and backtracks; its cost depends on the puzzle and explodes as blanks grow.
             </p>
+            {solve.status === 'done' && (
+              <CodePanel algoId={verifyAlgoId('sudoku-solve')} counters={solve.counters} n={blanks} finished />
+            )}
           </section>
           <MemoryView rows={[{ label: 'Checker', counters: frame.counters }]} />
         </div>
@@ -239,6 +247,10 @@ function SubsetTab() {
             Verifying adds up the numbers you picked. Search may have to try all 2<sup>{subsetN}</sup> ={' '}
             {fmt(2 ** subsetN)} subsets: it is lucky here only if a solution comes early in its order.
           </p>
+          <CodePanel algoId={verifyAlgoId('subset-check')} counters={verify.counters} n={subsetN} finished />
+          {solve.status === 'done' && (
+            <CodePanel algoId={verifyAlgoId('subset-solve')} counters={solve.counters} n={subsetN} finished />
+          )}
         </section>
       </div>
 

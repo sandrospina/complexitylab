@@ -35,13 +35,18 @@ import { tspBrute } from '../../src/algorithms/tsp/brute';
 import { tspHeldKarp } from '../../src/algorithms/tsp/held-karp';
 import { tspHeuristic } from '../../src/algorithms/tsp/heuristic';
 import { makeTspInput } from '../../src/algorithms/tsp/input';
+import { BOX_SHAPES, solvedBoard } from '../../src/algorithms/sudoku/board';
+import { checkSudoku } from '../../src/algorithms/sudoku/check';
+import { subsetSumBrute } from '../../src/algorithms/subset-sum/brute';
+import { makeSolveInput as makeSubsetInput, makeVerifyInput } from '../../src/algorithms/subset-sum/input';
+import { verifySubsetSum } from '../../src/algorithms/subset-sum/verify';
 import { mulberry32 } from '../../src/engine/rng';
 import { runCount } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
 import { PSEUDOCODE } from '../../src/pseudocode';
 import { MODULES } from '../../src/modules/registry';
 
-const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp'];
+const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp', 'verify'];
 const lines = <I,>(algo: Algorithm<I, unknown>, input: I) => runCount(algo, input).counters.lines;
 const sorted = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 const sortIn = (arr: number[]) => ({ arr, seed: 1 });
@@ -262,6 +267,22 @@ describe('measured line counts match the formulas', () => {
       expect([c[2], c[3]]).toEqual([n, (n * (n - 1)) / 2]);
       expect(c[5]).toBe(c[4]! * ((n * (n - 3)) / 2));
       expect(c[7]).toBe(c[4]);
+    }
+  });
+
+  it('verify vs solve: the checkers are linear in their input, the searches exponential', () => {
+    for (const sz of [4, 9, 16]) {
+      const [r, c] = BOX_SHAPES[sz]!;
+      const k = lines(checkSudoku, solvedBoard(r, c, mulberry32(sz)));
+      expect([k[2], k[3], k[4], k[5], k[6]]).toEqual([3 * sz, 3 * sz * sz, 3 * sz * sz, 3 * sz * sz, 1]);
+    }
+    for (const n of [4, 10]) {
+      const cert = makeVerifyInput(n, 'valid', mulberry32(n));
+      const v = lines(verifySubsetSum, cert);
+      const C = cert.cert.length;
+      expect([v[2], v[3], v[4], v[5]]).toEqual([C + 1, C, C, 1]);
+      const s = lines(subsetSumBrute, makeSubsetInput(n, 'none', mulberry32(n)));
+      expect([s[2], s[3], s[4], s[5], s[6]]).toEqual([2 ** n, 2 ** n - 1, 2 ** n - 1, 2 ** n - 1, 1]);
     }
   });
 });
