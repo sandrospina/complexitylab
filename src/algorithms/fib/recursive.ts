@@ -16,7 +16,7 @@ interface Call {
 function fibRecursive(memo: boolean): Algorithm<FibInput, bigint> {
   return function* ({ n }, ins: Instrument) {
     const table: (bigint | undefined)[] = [];
-    if (memo) yield ins.alloc<FibSnapshot>(n + 1, { label: 'memo table' });
+    if (memo) yield ins.alloc<FibSnapshot>(n + 1, { label: 'memo table', line: 1 });
     const stack: Call[] = [{ k: n, stage: 'enter' }];
     let ret = 0n;
 
@@ -25,7 +25,7 @@ function fibRecursive(memo: boolean): Algorithm<FibInput, bigint> {
       const { k } = call;
       if (call.stage === 'enter') {
         yield ins.pushFrame<FibSnapshot>({ label: `fib(${k})`, value: k, snapshot: { k } });
-        yield ins.compare<FibSnapshot>({ label: 'k < 2?', snapshot: { k } });
+        yield ins.compare<FibSnapshot>({ label: 'k < 2?', snapshot: { k }, line: 2 });
         if (k < 2) {
           ret = BigInt(k);
           yield ins.popFrame();
@@ -33,7 +33,7 @@ function fibRecursive(memo: boolean): Algorithm<FibInput, bigint> {
           continue;
         }
         if (memo) {
-          yield ins.read<FibSnapshot>({ indices: [k], label: 'memo lookup', snapshot: { k } });
+          yield ins.read<FibSnapshot>({ indices: [k], label: 'memo lookup', snapshot: { k }, line: 3 });
           const hit = table[k];
           if (hit !== undefined) {
             ret = hit;
@@ -43,9 +43,11 @@ function fibRecursive(memo: boolean): Algorithm<FibInput, bigint> {
             continue;
           }
         }
+        ins.at(4);
         call.stage = 'left';
         stack.push({ k: k - 1, stage: 'enter' });
       } else if (call.stage === 'left') {
+        ins.at(5);
         call.left = ret;
         call.stage = 'right';
         stack.push({ k: k - 2, stage: 'enter' });
@@ -53,8 +55,11 @@ function fibRecursive(memo: boolean): Algorithm<FibInput, bigint> {
         yield ins.read<FibSnapshot>({ label: `fib(${k - 1})`, snapshot: { k } });
         yield ins.read<FibSnapshot>({ label: `fib(${k - 2})`, snapshot: { k } });
         ret = call.left! + ret;
-        if (memo) table[k] = ret;
-        yield ins.write<FibSnapshot>({ indices: memo ? [k] : undefined, value: ret.toString(), snapshot: { k } });
+        if (memo) {
+          table[k] = ret;
+          ins.at(6);
+        }
+        yield ins.write<FibSnapshot>({ indices: memo ? [k] : undefined, value: ret.toString(), snapshot: { k }, line: 7 });
         yield ins.popFrame();
         stack.pop();
       }

@@ -10,11 +10,16 @@ export const lcsTable: Algorithm<LcsInput, LcsResult> = function* ({ a, b }, ins
   const n = a.length;
   const m = b.length;
   const L = Array.from({ length: n + 1 }, () => Array<number>(m + 1).fill(0));
-  yield ins.alloc<LcsSnapshot>((n + 1) * (m + 1), { label: 'table' });
-  for (let i = 1; i <= n; i++)
-    for (let j = 1; j <= m; j++) {
-      yield ins.compare<LcsSnapshot>({ indices: [i, j], label: `${a[i - 1]} = ${b[j - 1]}?`, snapshot: { i, j } });
-      if (a[i - 1] === b[j - 1]) {
+  yield ins.alloc<LcsSnapshot>((n + 1) * (m + 1), { label: 'table', line: 1 });
+  for (let i = 1; ; i++) {
+    ins.at(2);
+    if (i > n) break;
+    for (let j = 1; ; j++) {
+      ins.at(3);
+      if (j > m) break;
+      yield ins.compare<LcsSnapshot>({ indices: [i, j], label: `${a[i - 1]} = ${b[j - 1]}?`, snapshot: { i, j }, line: 4 });
+      const match = a[i - 1] === b[j - 1];
+      if (match) {
         yield ins.read<LcsSnapshot>({ label: 'diagonal', snapshot: { i, j } });
         L[i]![j] = L[i - 1]![j - 1]! + 1;
       } else {
@@ -22,13 +27,14 @@ export const lcsTable: Algorithm<LcsInput, LcsResult> = function* ({ a, b }, ins
         yield ins.read<LcsSnapshot>({ label: 'left', snapshot: { i, j } });
         L[i]![j] = Math.max(L[i - 1]![j]!, L[i]![j - 1]!);
       }
-      yield ins.write<LcsSnapshot>({ indices: [i, j], value: L[i]![j], snapshot: { i, j } });
+      yield ins.write<LcsSnapshot>({ indices: [i, j], value: L[i]![j], snapshot: { i, j }, line: match ? 5 : 6 });
     }
+  }
   // Walk back from the corner: a diagonal step wherever the letters match.
   const out: string[] = [];
   for (let i = n, j = m; i > 0 && j > 0; ) {
     yield ins.mark<LcsSnapshot>('path', { indices: [i, j], snapshot: { i, j } });
-    yield ins.compare<LcsSnapshot>({ indices: [i, j], label: 'trace back', snapshot: { i, j } });
+    yield ins.compare<LcsSnapshot>({ indices: [i, j], label: 'trace back', snapshot: { i, j }, line: 7 });
     if (a[i - 1] === b[j - 1]) {
       out.push(a[i - 1]!);
       i--;
@@ -36,6 +42,7 @@ export const lcsTable: Algorithm<LcsInput, LcsResult> = function* ({ a, b }, ins
     } else if (L[i - 1]![j]! >= L[i]![j - 1]!) i--;
     else j--;
   }
+  ins.at(8);
   yield ins.free<LcsSnapshot>((n + 1) * (m + 1), { label: 'table' });
   return { length: L[n]![m]!, lcs: out.reverse().join('') };
 };

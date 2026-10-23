@@ -144,9 +144,9 @@ function highlight(code: string) {
 
 /** Whether a source line carries the tag for pseudocode line k. */
 const tags = (src: string, k: number) => {
-  const m = /line: ([^,}\n]+)|ins\.at\(([^)]+)\)|(?:true|false), (\d+)\)|(?:less|put)\([^,]+, [^,]+, (\d+)/.exec(src);
+  const m = /line: ([^,}\n]+)|ins\.at\(([^)]+)\)|(?:true|false), (\d+)\)|(?:less|put)\([^,]+, [^,]+, (\d+)|const line = ([^;\n]+)/.exec(src);
   if (!m) return false;
-  const expr = m[1] ?? m[2] ?? m[3] ?? m[4]!;
+  const expr = m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]!;
   return [...expr.matchAll(/\b\d+\b/g)].some((d) => Number(d[0]) === k);
 };
 

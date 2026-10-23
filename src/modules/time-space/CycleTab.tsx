@@ -180,8 +180,10 @@ export function CycleTab() {
           step={s}
           metric="total"
           metricLabel="ops"
+          n={n}
           entries={traces.map(({ a, trace }) => ({
             key: a,
+            algoId: `time-space/${a}`,
             name: META[a].name,
             color: META[a].color,
             trace,

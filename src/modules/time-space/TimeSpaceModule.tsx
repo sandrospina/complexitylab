@@ -154,7 +154,11 @@ function FibTab() {
       </section>
 
       <div className="grid-2">
-        <AlgorithmView title={META[algo].name} event={frame.event}>
+        <AlgorithmView
+          title={META[algo].name}
+          event={frame.event}
+          code={{ algoId: `time-space/${algo}`, counters: frame.counters, n, finished: s >= maxStep }}
+        >
           {algo === 'iterative' ? (
             <div className="stack">
               <p style={{ margin: 0 }}>No recursion: a loop that keeps only the last two values.</p>
