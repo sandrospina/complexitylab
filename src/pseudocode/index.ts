@@ -1,5 +1,6 @@
 import { BINARY_SEARCH, INTERPOLATION_SEARCH, JUMP_SEARCH, LINEAR_SEARCH, RECURSIVE_BINARY_SEARCH } from './search';
 import { BUBBLE_SORT, INSERTION_SORT, MERGE_SORT, QUICKSORT, TIMSORT } from './sorting';
+import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
 import type { Pseudocode } from './types';
 
@@ -24,6 +25,10 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'time-space/lcs-table': LCS_TABLE,
   'time-space/lcs-rows': LCS_ROWS,
   'time-space/lcs-hirschberg': HIRSCHBERG,
+  'graphs/bfs': BFS,
+  'graphs/dfs': DFS,
+  'graphs/dijkstra-array': DIJKSTRA_ARRAY,
+  'graphs/dijkstra-heap': DIJKSTRA_HEAP,
 };
 
 export const pseudocodeFor = (algoId: string): Pseudocode | undefined => PSEUDOCODE[algoId];

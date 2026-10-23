@@ -21,13 +21,20 @@ import { lcsHirschberg } from '../../src/algorithms/lcs/hirschberg';
 import { makeLcsInput } from '../../src/algorithms/lcs/input';
 import { lcsRows } from '../../src/algorithms/lcs/rows';
 import { lcsTable } from '../../src/algorithms/lcs/table';
+import { bfs } from '../../src/algorithms/graph/bfs';
+import { dfs } from '../../src/algorithms/graph/dfs';
+import { dijkstraArray } from '../../src/algorithms/graph/dijkstra-array';
+import { dijkstraHeap } from '../../src/algorithms/graph/dijkstra-heap';
+import { edgesOf } from '../../src/algorithms/graph/graph';
+import { makeDijkstraInput } from '../../src/algorithms/graph/input';
+import { makePreset } from '../../src/algorithms/graph/presets';
 import { mulberry32 } from '../../src/engine/rng';
 import { runCount } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
 import { PSEUDOCODE } from '../../src/pseudocode';
 import { MODULES } from '../../src/modules/registry';
 
-const PILOT = ['search', 'sorting', 'time-space'];
+const PILOT = ['search', 'sorting', 'time-space', 'graphs'];
 const lines = <I,>(algo: Algorithm<I, unknown>, input: I) => runCount(algo, input).counters.lines;
 const sorted = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 const sortIn = (arr: number[]) => ({ arr, seed: 1 });
@@ -50,7 +57,8 @@ describe('pseudocode entries', () => {
         for (const m of src.matchAll(/line: ([^,}\n]+)|ins\.at\(([^)]+)\)|const line = ([^;\n]+)/g))
           for (const d of (m[1] ?? m[2] ?? m[3]!).matchAll(/\b\d+\b/g)) tagged.add(Number(d[0]));
         // TimSort's helpers take the line as an argument.
-        for (const m of src.matchAll(/(?:less\([^,]+, [^,]+, |put\([^,]+, [^,]+, )(\d+)|(?:true|false), (\d+)\)/g)) tagged.add(Number(m[1] ?? m[2]));
+        for (const m of src.matchAll(/(?:less\([^,]+, [^,]+, |put\([^,]+, [^,]+, )(\d+)|(?:true|false), (\d+)\)|yield\* push\([^;]*, (\d+)\);/g))
+          tagged.add(Number(m[1] ?? m[2] ?? m[3]));
       }
       for (const k of tagged) expect(k >= 1 && k <= p.lines.length, `${id}: line ${k}`).toBe(true);
       p.lines.forEach((l, i) => {
@@ -193,5 +201,32 @@ describe('measured line counts match the formulas', () => {
       const h = lines(lcsHirschberg, { a, b });
       expect((h[4] ?? 0) + (h[5] ?? 0)).toBeLessThanOrEqual(2 * n * n);
     }
+  });
+
+  it('BFS and DFS: every vertex once, every edge from both ends', () => {
+    for (const id of ['tree', 'path', 'grid', 'random'] as const) {
+      const g = makePreset(id);
+      const V = g.n;
+      const E = edgesOf(g).length;
+      const reachable = (runCount(bfs, { g, source: 0 }).result as number[]).filter((d) => d >= 0).length;
+      if (reachable !== V) continue;
+      const b = lines(bfs, { g, source: 0 });
+      expect([b[1], b[2], b[3], b[4], b[5], b[6], b[7]]).toEqual([1, 1, V + 1, V, 2 * E, 2 * E, V - 1]);
+      const d = lines(dfs, { g, source: 0 });
+      expect([d[1], d[2], d[3], d[4], d[5], d[6]]).toEqual([1, 1, V, 2 * E, 2 * E, V - 1]);
+    }
+  });
+
+  it('Dijkstra: the array scans V² entries; the heap relaxes 2E edge ends with a heap operation per improvement', () => {
+    const input = makeDijkstraInput(30, 'degree', mulberry32(4), 4);
+    const V = input.g.n;
+    const E = edgesOf(input.g).length;
+    const a = lines(dijkstraArray, input);
+    expect([a[2], a[3], a[4], a[5], a[6], a[7]]).toEqual([V, V * V, V, V, 2 * E, 2 * E]);
+    const h = lines(dijkstraHeap, input);
+    expect([h[5], h[6]]).toEqual([2 * E, 2 * E]);
+    // These weights make every edge improve a distance once: one insert per edge, plus the source.
+    expect(h[7]).toBe(E);
+    expect(h[2]).toBe(E + 2);
   });
 });

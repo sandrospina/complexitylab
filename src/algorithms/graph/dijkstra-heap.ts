@@ -9,18 +9,19 @@ import type { GraphInput, GraphSnapshot } from './input';
 export const dijkstraHeap: Algorithm<GraphInput, number[]> = function* ({ g, source }, ins: Instrument) {
   const dist = Array<number>(g.n).fill(Infinity);
   const heap: [number, number][] = [];
-  yield ins.alloc<GraphSnapshot>(g.n, { label: 'dist' });
+  yield ins.alloc<GraphSnapshot>(g.n, { label: 'dist', line: 1 });
 
-  function* push(d: number, v: number, u?: number) {
+  /** INSERT; `line` tags its sift-up (left untagged for the source, part of line 1's setup). */
+  function* push(d: number, v: number, u?: number, line?: number) {
     heap.push([d, v]);
     yield ins.alloc<GraphSnapshot>(1, { indices: [v], label: 'heap push', snapshot: { u } });
     let i = heap.length - 1;
     while (i > 0) {
       const p = (i - 1) >> 1;
-      yield ins.compare<GraphSnapshot>({ label: 'sift up', snapshot: { u } });
+      yield ins.compare<GraphSnapshot>({ label: 'sift up', snapshot: { u }, line });
       if (heap[p]![0] <= heap[i]![0]) break;
       [heap[p], heap[i]] = [heap[i]!, heap[p]!];
-      yield ins.swap<GraphSnapshot>({ label: 'sift up', snapshot: { u } });
+      yield ins.swap<GraphSnapshot>({ label: 'sift up', snapshot: { u }, line });
       i = p;
     }
   }
@@ -39,13 +40,13 @@ export const dijkstraHeap: Algorithm<GraphInput, number[]> = function* ({ g, sou
       const r = l + 1;
       let c = l;
       if (r < heap.length) {
-        yield ins.compare<GraphSnapshot>({ label: 'sift down' });
+        yield ins.compare<GraphSnapshot>({ label: 'sift down', line: 3 });
         if (heap[r]![0] < heap[l]![0]) c = r;
       }
-      yield ins.compare<GraphSnapshot>({ label: 'sift down' });
+      yield ins.compare<GraphSnapshot>({ label: 'sift down', line: 3 });
       if (heap[i]![0] <= heap[c]![0]) break;
       [heap[i], heap[c]] = [heap[c]!, heap[i]!];
-      yield ins.swap<GraphSnapshot>({ label: 'sift down' });
+      yield ins.swap<GraphSnapshot>({ label: 'sift down', line: 3 });
       i = c;
     }
     return top;
@@ -54,21 +55,23 @@ export const dijkstraHeap: Algorithm<GraphInput, number[]> = function* ({ g, sou
   dist[source] = 0;
   yield ins.write<GraphSnapshot>({ indices: [source], value: 0, label: 'dist' });
   yield* push(0, source);
-  while (heap.length > 0) {
+  for (;;) {
+    ins.at(2);
+    if (heap.length === 0) break;
     const [d, u] = yield* pop();
-    yield ins.compare<GraphSnapshot>({ indices: [u], label: 'stale?', snapshot: { u } });
+    yield ins.compare<GraphSnapshot>({ indices: [u], label: 'stale?', snapshot: { u }, line: 4 });
     if (d > dist[u]!) continue;
     yield ins.write<GraphSnapshot>({ indices: [u], label: 'settle', snapshot: { u } });
     const vs = g.adj[u]!;
     for (let i = 0; i < vs.length; i++) {
       const v = vs[i]!;
       const nd = d + g.w[u]![i]!;
-      yield ins.read<GraphSnapshot>({ indices: [u, v], snapshot: { u } });
-      yield ins.compare<GraphSnapshot>({ indices: [v], label: 'relax', snapshot: { u } });
+      yield ins.read<GraphSnapshot>({ indices: [u, v], snapshot: { u }, line: 5 });
+      yield ins.compare<GraphSnapshot>({ indices: [v], label: 'relax', snapshot: { u }, line: 6 });
       if (nd < dist[v]!) {
         dist[v] = nd;
-        yield ins.write<GraphSnapshot>({ indices: [v], value: nd, label: 'dist', snapshot: { u } });
-        yield* push(nd, v, u);
+        yield ins.write<GraphSnapshot>({ indices: [v], value: nd, label: 'dist', snapshot: { u }, line: 7 });
+        yield* push(nd, v, u, 8);
       }
     }
   }

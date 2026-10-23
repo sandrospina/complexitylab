@@ -88,8 +88,10 @@ export function DijkstraTab() {
             step={s}
             metric="total"
             metricLabel="ops"
+            n={graph.n}
             entries={traces.map(({ a, trace }) => ({
               key: a,
+              algoId: graphAlgoId(a),
               name: `Dijkstra, ${META[a].name.toLowerCase()}`,
               color: META[a].color,
               trace,

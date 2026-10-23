@@ -57,8 +57,10 @@ export function TraversalTab() {
           step={s}
           metric="total"
           metricLabel="ops"
+          n={graph.n}
           entries={traces.map(({ a, trace }) => ({
             key: a,
+            algoId: graphAlgoId(a),
             name: META[a].name,
             color: META[a].color,
             trace,
