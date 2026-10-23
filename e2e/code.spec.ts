@@ -39,3 +39,25 @@ test('a race offers the code for each algorithm', async ({ page }) => {
   await page.goto('/?m=search&algo=race&n=16');
   await expect(page.getByRole('button', { name: 'Show code' })).toHaveCount(4);
 });
+
+test('every module offers the code of its algorithms', async ({ page }) => {
+  const pages: [string, string][] = [
+    ['/?m=time-space&tab=fib&algo=memo&n=6', 'FIB(n), and MEMO-FIB(n)'],
+    ['/?m=time-space&tab=cycle&cn=10', 'CYCLE-HASH(f, x₀)'],
+    ['/?m=time-space&tab=lcs&ln=6', 'HIRSCHBERG(a, b)'],
+    ['/?m=graphs&tab=dijkstra&preset=grid', 'DIJKSTRA-HEAP(G, w, s)'],
+    ['/?m=knapsack&n=4&b=4', 'KNAPSACK-DP(w, v, W)'],
+    ['/?m=tsp&k=6&seed=1', 'HELD-KARP(P)'],
+    ['/?m=verify&tab=sudoku&size=4', 'SUDOKU-CHECK(B)'],
+    ['/?m=sat&tab=workspace&preset=php3', 'DPLL(φ)'],
+    ['/?m=reductions&tab=coloring&preset=square', '3-COLOURING-TO-SAT(G)'],
+  ];
+  for (const [url, title] of pages) {
+    await page.goto(url);
+    const buttons = page.getByRole('button', { name: 'Show code' });
+    await expect(buttons.first()).toBeVisible({ timeout: 20_000 });
+    const n = await buttons.count();
+    for (let i = 0; i < n; i++) await buttons.nth(0).click();
+    await expect(page.getByRole('table', { name: `Pseudocode of ${title}` }), url).toBeVisible();
+  }
+});

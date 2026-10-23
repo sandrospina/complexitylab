@@ -5,6 +5,7 @@ import { encodeCnf, toDimacs } from '../../algorithms/sat/cnf';
 import type { SatInput, SatResult } from '../../algorithms/sat/input';
 import { runCount } from '../../engine/runner';
 import { MAX_VARS } from '../../store/sat';
+import { CodePanel } from '../../views/CodePanel';
 import { useSolve } from '../../views/useSolve';
 
 export const sameRef = (a: Ref, b: Ref) => a.kind === b.kind && a.id === b.id;
@@ -28,6 +29,8 @@ interface Props<I, S> {
   noSolution: string;
   /** What a decoded solution is called, e.g. "colouring". */
   solutionName: string;
+  /** The instance's size measure (V, cells, gates, steps), for the code panel. */
+  size: number;
 }
 
 const CLAUSES_SHOWN = 6;
@@ -48,8 +51,9 @@ function clauseText(e: Encoding, clause: number[]): string {
  * The three stages of a reduction: encode the instance as CNF (dropping any families the
  * student unticks), solve it with DPLL in a worker, decode the model and verify it.
  */
-export function Pipeline<I, S>({ reduction, instance, omit, setOmit, draw, noSolution, solutionName }: Props<I, S>) {
-  const encoding = useMemo(() => runCount(reduction.encode, { instance, omit }).result!, [reduction, instance, omit]);
+export function Pipeline<I, S>({ reduction, instance, omit, setOmit, draw, noSolution, solutionName, size: n }: Props<I, S>) {
+  const encodeRun = useMemo(() => runCount(reduction.encode, { instance, omit }), [reduction, instance, omit]);
+  const encoding = encodeRun.result!;
   // Break-it mode uses the plainest solver (first variable, true first), which takes any shortcut the clauses leave.
   const input = useMemo<SatInput>(
     () => ({ cnf: encoding.cnf, heuristic: omit.length ? 'first' : 'jw', propagate: true, pure: false }),
@@ -152,6 +156,7 @@ export function Pipeline<I, S>({ reduction, instance, omit, setOmit, draw, noSol
             Hover a clause to see what it constrains; hover the instance to see its clauses. Untick a family to see what
             breaks without it.
           </p>
+          <CodePanel algoId={`reductions/${reduction.id}`} counters={encodeRun.counters} n={n} finished />
           <div className="controls">
             <button onClick={download}>Download DIMACS</button>
             {encoding.cnf.n <= MAX_VARS && (

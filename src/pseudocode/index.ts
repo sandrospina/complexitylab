@@ -3,6 +3,7 @@ import { BUBBLE_SORT, INSERTION_SORT, MERGE_SORT, QUICKSORT, TIMSORT } from './s
 import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
 import { HELD_KARP, KNAPSACK_BRUTE, KNAPSACK_DP, TSP_BRUTE, TSP_HEURISTIC } from './knapsack-tsp';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
+import { CLIQUE_TO_SAT, COLORING_TO_SAT, COOK_LEVIN, HAMILTONIAN_TO_SAT, SUDOKU_TO_SAT, TSEITIN } from './reductions';
 import { DPLL, TRUTH_TABLE } from './sat';
 import type { Pseudocode } from './types';
 import { SUBSET_SUM_SEARCH, SUDOKU_CHECK, SUDOKU_SOLVE, VERIFY_SUBSET_SUM } from './verify';
@@ -46,6 +47,12 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'sat/dpll-first': DPLL,
   'sat/dpll-moms': DPLL,
   'sat/dpll-jw': DPLL,
+  'reductions/coloring': COLORING_TO_SAT,
+  'reductions/clique': CLIQUE_TO_SAT,
+  'reductions/hamiltonian': HAMILTONIAN_TO_SAT,
+  'reductions/sudoku': SUDOKU_TO_SAT,
+  'reductions/tseitin': TSEITIN,
+  'reductions/cook-levin': COOK_LEVIN,
 };
 
 export const pseudocodeFor = (algoId: string): Pseudocode | undefined => PSEUDOCODE[algoId];

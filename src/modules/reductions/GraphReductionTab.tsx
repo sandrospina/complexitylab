@@ -193,6 +193,7 @@ export function GraphReductionTab({ tab }: { tab: GraphTab }) {
         omit={omit}
         setOmit={setOmit}
         draw={(d) => <Drawing tab={tab} g={graph} k={k} d={d} />}
+        size={graph.n}
         {...REDUCTION[tab]}
       />
     </div>

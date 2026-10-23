@@ -44,6 +44,7 @@ export function SudokuTab() {
         setOmit={setOmit}
         noSolution="the puzzle has no solution"
         solutionName="grid"
+        size={puzzle.cells.length}
         draw={({ solution, violations, lit, onHover }) => {
           const f = solution as Filling | undefined;
           const board: Board = { ...puzzle, cells: f ? f.map((ds, i) => (ds.length === 1 ? ds[0]! : puzzle.cells[i]!)) : puzzle.cells };
@@ -134,6 +135,7 @@ export function CircuitTab() {
         setOmit={setOmit}
         noSolution="no inputs make the output true"
         solutionName="input assignment"
+        size={c.gates.length}
         draw={({ solution, violations, lit, onHover }) => {
           const values = solution as WireValues | undefined;
           return (
@@ -195,6 +197,7 @@ export function CookTab() {
         setOmit={setOmit}
         noSolution={`the machine does not accept within ${steps} steps`}
         solutionName="run"
+        size={Math.max(1, steps)}
         draw={({ solution, lit, onHover }) => {
           const tab = (solution as Tableau | undefined) ?? [startRow(run)];
           const litCells = ids(lit, 'cell');

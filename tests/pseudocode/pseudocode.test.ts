@@ -43,13 +43,24 @@ import { verifySubsetSum } from '../../src/algorithms/subset-sum/verify';
 import { makePreset as makeSatPreset, pigeonhole } from '../../src/algorithms/sat/cnf';
 import { dpll } from '../../src/algorithms/sat/dpll';
 import { truthTable } from '../../src/algorithms/sat/truth-table';
+import { randomCircuit } from '../../src/algorithms/reductions/circuit';
+import { clique } from '../../src/algorithms/reductions/clique';
+import { coloring } from '../../src/algorithms/reductions/coloring';
+import { cookLevin } from '../../src/algorithms/reductions/cook-levin';
+import { hamiltonian } from '../../src/algorithms/reductions/hamiltonian';
+import { makeGraphPreset } from '../../src/algorithms/reductions/presets';
+import { sudoku } from '../../src/algorithms/reductions/sudoku';
+import { tseitin } from '../../src/algorithms/reductions/tseitin';
+import type { Reduction } from '../../src/algorithms/reductions/types';
+import { blank } from '../../src/algorithms/sudoku/board';
 import { mulberry32 } from '../../src/engine/rng';
 import { runCount } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
 import { PSEUDOCODE } from '../../src/pseudocode';
 import { MODULES } from '../../src/modules/registry';
 
-const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp', 'verify', 'sat'];
+// Every module: the pseudocode now covers all registered algorithms.
+const PILOT = MODULES.map((m) => m.id);
 const lines = <I,>(algo: Algorithm<I, unknown>, input: I) => runCount(algo, input).counters.lines;
 const sorted = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 const sortIn = (arr: number[]) => ({ arr, seed: 1 });
@@ -75,6 +86,9 @@ describe('pseudocode entries', () => {
         for (const m of src.matchAll(/(?:less\([^,]+, [^,]+, |put\([^,]+, [^,]+, )(\d+)|(?:true|false), (\d+)\)|yield\* push\([^;]*, (\d+)\);/g))
           tagged.add(Number(m[1] ?? m[2] ?? m[3]));
       }
+      // Reduction encoders are tagged by the clause builder, one line per clause family:
+      // the per-family test below checks those counts instead.
+      if (p.sources.includes('reductions/types.ts')) continue;
       for (const k of tagged) expect(k >= 1 && k <= p.lines.length, `${id}: line ${k}`).toBe(true);
       p.lines.forEach((l, i) => {
         if (l.times !== undefined) expect(tagged.has(i + 1), `${id}: line ${i + 1} has a formula but is never measured`).toBe(true);
@@ -301,5 +315,23 @@ describe('measured line counts match the formulas', () => {
     expect(php.lines[8]).toBe(php.ops.clauseCheck);
     const ex = runCount(dpll, { cnf: makeSatPreset('example', mulberry32(1)), ...opts }).counters;
     expect([ex.lines[6], ex.lines[3], (ex.lines[5] ?? 0) + (ex.lines[7] ?? 0)]).toEqual([1, 1, 4]);
+  });
+
+  it('reductions: line 1 creates the variables and each later line emits exactly its family’s clauses', () => {
+    const cases: [Reduction<never, unknown>, unknown, string][] = [
+      [coloring as never, makeGraphPreset('petersen'), 'reductions/coloring'],
+      [clique as never, { g: makeGraphPreset('random'), k: 3 }, 'reductions/clique'],
+      [hamiltonian as never, makeGraphPreset('cube'), 'reductions/hamiltonian'],
+      [sudoku as never, blank(solvedBoard(2, 3, mulberry32(1)), 18, mulberry32(2)), 'reductions/sudoku'],
+      [tseitin as never, randomCircuit(12, mulberry32(3)), 'reductions/tseitin'],
+      [cookLevin as never, { input: [1, 0, 1], T: 6 }, 'reductions/cook-levin'],
+    ];
+    for (const [r, instance, id] of cases) {
+      const c = runCount(r.encode, { instance: instance as never, omit: [] }).counters;
+      const size = r.size(instance as never);
+      expect(c.lines[1], id).toBe(1);
+      r.families.forEach((f, k) => expect(c.lines[k + 2] ?? 0, `${id}: ${f.id}`).toBe(size.families[f.id]));
+      expect(PSEUDOCODE[id]!.lines).toHaveLength(r.families.length + 1);
+    }
   });
 });

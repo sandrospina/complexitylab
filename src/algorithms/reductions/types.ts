@@ -55,6 +55,9 @@ export interface Reduction<I, S> {
 /**
  * Collects variables and clauses with their origins, skipping omitted families. Encoders
  * write `yield* b.clause(...)`, so each clause is one counted write.
+ *
+ * Pseudocode lines (src/pseudocode/reductions.ts) follow the family list: line 1 creates the
+ * variables and family k (from 0) is line k + 2, so every clause is counted on its family's line.
  */
 export class CnfBuilder {
   readonly vars: Encoding['vars'] = [];
@@ -62,6 +65,7 @@ export class CnfBuilder {
   readonly origins: Encoding['origins'] = [];
   readonly counts: Record<string, number>;
   private readonly omit: Set<string>;
+  private readonly lineOf: Record<string, number>;
 
   constructor(
     private readonly ins: Instrument,
@@ -70,6 +74,7 @@ export class CnfBuilder {
   ) {
     this.omit = new Set(omit);
     this.counts = Object.fromEntries(families.map((f) => [f.id, 0]));
+    this.lineOf = Object.fromEntries(families.map((f, k) => [f.id, k + 2]));
   }
 
   /** Declares the next variable; returns its number (1-based). */
@@ -79,7 +84,7 @@ export class CnfBuilder {
   }
 
   *declare(count: number) {
-    yield this.ins.alloc(count, { label: 'variables' });
+    yield this.ins.alloc(count, { label: 'variables', line: 1 });
   }
 
   *clause(family: string, lits: number[], refs: Ref[]) {
@@ -87,7 +92,7 @@ export class CnfBuilder {
     this.clauses.push(lits);
     this.origins.push({ family, refs });
     this.counts[family] = (this.counts[family] ?? 0) + 1;
-    yield this.ins.write({ label: family });
+    yield this.ins.write({ label: family, line: this.lineOf[family] });
   }
 
   /** "Exactly one of" as one at-least-one clause and pairwise at-most-one clauses. */
