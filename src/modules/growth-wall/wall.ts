@@ -14,8 +14,12 @@ function log10Cost(cls: FixedClass, x: number): number {
   switch (cls) {
     case '1':
       return 0;
+    case 'loglogn':
+      return Math.log10(Math.log2(Math.max(x * LOG2_10, 2)));
     case 'logn':
       return Math.log10(x * LOG2_10);
+    case 'sqrtn':
+      return x / 2;
     case 'n':
       return x;
     case 'nlogn':
@@ -64,7 +68,8 @@ const EXACT_LIMIT = 15;
 
 /** Largest n whose cost f(n) fits in `ops` operations. */
 export function largestN(cls: FixedClass, ops: number): WallResult {
-  if (cls === '1') return { kind: 'unbounded' };
+  // log log n stays under 6 until n has billions of digits: as good as unbounded.
+  if (cls === '1' || cls === 'loglogn') return { kind: 'unbounded' };
   const target = Math.log10(ops);
   const fits = (x: number) => log10Cost(cls, x) <= target;
 

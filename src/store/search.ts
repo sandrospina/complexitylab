@@ -1,16 +1,24 @@
 import { create } from 'zustand';
 import type { SearchInputKind } from '../algorithms/search/input';
 import { powersOfTwo, runBenchmarks } from '../engine/benchmark';
+import { SEARCH_INPUT_KINDS } from '../algorithms/search/input';
+import { benchSizes, findAlgorithm } from '../modules/registry';
 import type { BenchmarkPoint } from '../engine/benchmark-core';
 import type { ComplexityClass } from '../engine/complexity';
 import { enumParam, intParam } from './url-state';
 
-export const SEARCH_MODES = ['linear', 'binary', 'race'] as const;
+export const SEARCH_ALGOS = ['linear', 'binary', 'jump', 'interpolation'] as const;
+export type SearchAlgo = (typeof SEARCH_ALGOS)[number];
+export const SEARCH_MODES = [...SEARCH_ALGOS, 'race'] as const;
 export type SearchMode = (typeof SEARCH_MODES)[number];
-export type SearchAlgo = 'linear' | 'binary';
 
-export const ALGO_ID: Record<SearchAlgo, string> = { linear: 'search/linear', binary: 'search/binary' };
-export const modeAlgos = (m: SearchMode): SearchAlgo[] => (m === 'race' ? ['linear', 'binary'] : [m]);
+export const ALGO_ID: Record<SearchAlgo, string> = {
+  linear: 'search/linear',
+  binary: 'search/binary',
+  jump: 'search/jump',
+  interpolation: 'search/interpolation',
+};
+export const modeAlgos = (m: SearchMode): SearchAlgo[] => (m === 'race' ? [...SEARCH_ALGOS] : [m]);
 export const BENCH_N = powersOfTwo(4, 20);
 export const MAX_ANIM_N = 64;
 
@@ -38,7 +46,7 @@ export const useSearchStore = create<SearchState>()((set, get) => {
   return {
     mode: enumParam('algo', SEARCH_MODES, 'binary'),
     n: intParam('n', 16, 1, MAX_ANIM_N),
-    kind: enumParam('kind', ['worst', 'random'] as const, 'worst'),
+    kind: enumParam('kind', SEARCH_INPUT_KINDS.map((k) => k.id), 'worst'),
     seed: intParam('seed', 1, 0, 1e9),
     step: intParam('step', 0, 0, 1e6),
     predictions: {},
@@ -60,7 +68,7 @@ export const useSearchStore = create<SearchState>()((set, get) => {
       const byId = Object.fromEntries(algos.map((a) => [ALGO_ID[a], a])) as Record<string, SearchAlgo>;
       set((s) => ({ benchRunning: true, bench: { ...s.bench, ...Object.fromEntries(algos.map((a) => [a, []])) } }));
       cancel = runBenchmarks(
-        algos.map((a) => ({ algoId: ALGO_ID[a], nValues: BENCH_N, inputKind: kind, seed })),
+        algos.map((a) => ({ algoId: ALGO_ID[a], nValues: benchSizes(findAlgorithm(ALGO_ID[a]), kind), inputKind: kind, seed })),
         (p) => {
           const a = byId[p.algoId]!;
           set((s) => ({ bench: { ...s.bench, [a]: [...(s.bench[a] ?? []), p] } }));

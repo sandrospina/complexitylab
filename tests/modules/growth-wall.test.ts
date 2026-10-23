@@ -32,8 +32,14 @@ describe('growth-rate wall', () => {
     expect(largestN('n2exp2', 1e9)).toEqual({ kind: 'exact', n: 21 });
   });
 
+  it('√n squares the budget', () => {
+    expect(largestN('sqrtn', 1e9)).toEqual({ kind: 'huge', log10n: expect.closeTo(18, 6) });
+    expect(largestN('sqrtn', 1e6)).toEqual({ kind: 'exact', n: 1e12 });
+  });
+
   it('log n and constant are effectively unbounded', () => {
     expect(largestN('1', 1e9).kind).toBe('unbounded');
+    expect(largestN('loglogn', 1e9).kind).toBe('unbounded');
     const r = largestN('logn', 1e9);
     expect(r.kind).toBe('huge');
     expect(formatWall(r)).toMatch(/^≈ 10\^/);

@@ -28,6 +28,26 @@ test('race mode benchmarks both searches', async ({ page }) => {
   await expect(page.getByTestId('fit-Binary search')).toContainText('O(log n)');
 });
 
+test('racing all four on spread values separates n, √n, log n and log log n', async ({ page }) => {
+  await page.goto('/?m=search&algo=race&kind=uniform&n=64');
+  await expect(page.getByRole('region', { name: 'Jump search animation' })).toBeVisible();
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  await expect(page.getByTestId('fit-Interpolation search')).toContainText('O(log log n)', { timeout: 60_000 });
+  await expect(page.getByTestId('fit-Jump search')).toContainText('O(√n)');
+  await expect(page.getByTestId('fit-Binary search')).toContainText('O(log n)');
+  await expect(page.getByTestId('fit-Linear search')).toContainText('O(n)');
+});
+
+test('interpolation search falls back to linear on the skewed array', async ({ page }) => {
+  await page.goto('/?m=search&algo=interpolation&kind=skewed&n=16');
+  // 15 probes, each with its range check.
+  const slider = page.getByRole('slider', { name: 'Scrub timeline' });
+  await slider.fill((await slider.getAttribute('max'))!);
+  await expect(page.getByTestId('ops-Interpolation search')).toHaveText('30');
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  await expect(page.getByTestId('fit-Interpolation search')).toContainText('O(n)', { timeout: 30_000 });
+});
+
 test('guess my number reports higher or lower', async ({ page }) => {
   await page.goto('/?m=search');
   await page.getByRole('spinbutton', { name: 'Your guess' }).fill('50');

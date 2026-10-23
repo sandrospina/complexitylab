@@ -44,7 +44,7 @@ export function* benchmark(req: BenchmarkRequest): Generator<BenchmarkPoint> {
     yield* medianBenchmark(req, kind.trials ?? MEDIAN_TRIALS);
     return;
   }
-  const trials = kind?.random ? RANDOM_TRIALS : 1;
+  const trials = kind?.random ? (kind.trials ?? RANDOM_TRIALS) : 1;
   for (const n of req.nValues) {
     if (n > spec.maxBenchN) break;
     const rng = mulberry32(req.seed + n);

@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { binarySearch } from '../../algorithms/search/binary';
 import { makeSearchInput, SEARCH_INPUT_KINDS } from '../../algorithms/search/input';
 import type { SearchInputKind, SearchSnapshot } from '../../algorithms/search/input';
+import { interpolationSearch } from '../../algorithms/search/interpolation';
+import { jumpSearch } from '../../algorithms/search/jump';
 import { linearSearch } from '../../algorithms/search/linear';
 import { bestFit } from '../../engine/fit';
 import { mulberry32 } from '../../engine/rng';
@@ -22,8 +24,16 @@ import { GuessGame } from './GuessGame';
 const META: Record<SearchAlgo, { name: string; color: string; generator: typeof linearSearch }> = {
   linear: { name: 'Linear search', color: '#e08a2e', generator: linearSearch },
   binary: { name: 'Binary search', color: '#4c78e0', generator: binarySearch },
+  jump: { name: 'Jump search', color: '#7d5ba6', generator: jumpSearch },
+  interpolation: { name: 'Interpolation search', color: '#2e9a6a', generator: interpolationSearch },
 };
-const MODE_LABEL: Record<SearchMode, string> = { linear: 'Linear search', binary: 'Binary search', race: 'Race both' };
+const MODE_LABEL: Record<SearchMode, string> = {
+  linear: 'Linear search',
+  binary: 'Binary search',
+  jump: 'Jump search',
+  interpolation: 'Interpolation search',
+  race: 'Race all four',
+};
 
 export default function SearchModule() {
   const { mode, n, kind, seed, step, predictions, bench, benchRunning } = useSearchStore();
@@ -85,7 +95,7 @@ export default function SearchModule() {
             ))}
           </select>
         </label>
-        {kind === 'random' && (
+        {SEARCH_INPUT_KINDS.find((k) => k.id === kind)?.random && (
           <label>
             Seed
             <input
@@ -135,6 +145,12 @@ export default function SearchModule() {
           </button>
         </div>
         <ScalingView series={series} markers={markers} domain={domain} />
+        <p className="muted" style={{ margin: 0 }}>
+          Jump search checks every √n-th element and then scans one block: O(√n), between linear and binary.
+          Interpolation search guesses where the target should be from the values at the ends: about log log n probes
+          when values are evenly spread, but on the skewed array every guess lands one place along and it is as slow as
+          linear search. Try the same algorithm on different inputs.
+        </p>
       </section>
 
       <GuessGame />

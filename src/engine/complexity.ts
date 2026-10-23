@@ -1,5 +1,5 @@
 /** Complexity classes the app can fit, predict and plot, slowest-growing first. */
-export const COMPLEXITY_CLASSES = ['1', 'logn', 'n', 'nlogn', 'n2', 'n2logn', 'n3', 'expc', 'expPhi', 'exp2', 'n2exp2', 'fact'] as const;
+export const COMPLEXITY_CLASSES = ['1', 'loglogn', 'logn', 'sqrtn', 'n', 'nlogn', 'n2', 'n2logn', 'n3', 'expc', 'expPhi', 'exp2', 'n2exp2', 'fact'] as const;
 
 export type ComplexityClass = (typeof COMPLEXITY_CLASSES)[number];
 
@@ -9,7 +9,9 @@ export type FixedClass = Exclude<ComplexityClass, 'expc'>;
 
 export const CLASS_LABEL: Record<ComplexityClass, string> = {
   '1': 'O(1)',
+  loglogn: 'O(log log n)',
   logn: 'O(log n)',
+  sqrtn: 'O(√n)',
   n: 'O(n)',
   nlogn: 'O(n log n)',
   n2: 'O(n²)',
@@ -41,8 +43,13 @@ export function growth(cls: ComplexityClass, n: number, base = 2): number {
   switch (cls) {
     case '1':
       return 1;
+    case 'loglogn':
+      // log₂ log₂ n, floored at n = 4 where it is 1, so small n stay positive.
+      return Math.log2(Math.log2(Math.max(n, 4)));
     case 'logn':
       return Math.log2(n);
+    case 'sqrtn':
+      return Math.sqrt(n);
     case 'n':
       return n;
     case 'nlogn':

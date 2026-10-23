@@ -11,6 +11,8 @@ import { DIJKSTRA_KINDS, makeDijkstraInput, makeTraversalInput, TRAVERSAL_KINDS 
 import type { DijkstraKind, GraphInput, TraversalKind } from '../algorithms/graph/input';
 import { binarySearch } from '../algorithms/search/binary';
 import { binarySearchRecursive } from '../algorithms/search/binaryRecursive';
+import { interpolationSearch } from '../algorithms/search/interpolation';
+import { jumpSearch } from '../algorithms/search/jump';
 import { makeSearchInput, SEARCH_INPUT_KINDS } from '../algorithms/search/input';
 import type { SearchInput, SearchInputKind } from '../algorithms/search/input';
 import { linearSearch } from '../algorithms/search/linear';
@@ -91,8 +93,9 @@ export interface InputKindSpec<K extends string = string> {
   sizes?: number[];
   /** What n measures for this kind, e.g. "bits of W"; defaults to the input size. */
   xLabel?: string;
-  /** 'median' of `trials` runs per n, for random kinds whose cost is heavy-tailed. */
+  /** 'median' of the trials per n, for random kinds whose cost is heavy-tailed. */
   aggregate?: 'mean' | 'median';
+  /** Trials per n for random kinds, when the default is too noisy for the fit. */
   trials?: number;
 }
 
@@ -121,7 +124,18 @@ export interface ModuleSpec {
   algorithms: AnyAlgorithmSpec[];
 }
 
-const search = (s: Omit<AlgorithmSpec<SearchInput, number, SearchInputKind>, 'inputKinds' | 'makeInput' | 'maxAnimN' | 'maxBenchN' | 'metric'>) =>
+/**
+ * O(log log n) barely moves over the sizes we can run (2 to 4.2 for n up to 2¹⁸), so
+ * interpolation search on spread values averages many more inputs per n than the default.
+ */
+const INTERPOLATION_KINDS = SEARCH_INPUT_KINDS.map((k) =>
+  k.id === 'uniform' ? { ...k, trials: 256, sizes: Array.from({ length: 15 }, (_, i) => 2 ** (i + 4)) } : k,
+);
+
+const search = (
+  s: Omit<AlgorithmSpec<SearchInput, number, SearchInputKind>, 'inputKinds' | 'makeInput' | 'maxAnimN' | 'maxBenchN' | 'metric'> &
+    Partial<Pick<AlgorithmSpec<SearchInput, number, SearchInputKind>, 'inputKinds'>>,
+) =>
   define<SearchInput, number, SearchInputKind>({
     inputKinds: SEARCH_INPUT_KINDS,
     makeInput: makeSearchInput,
@@ -261,13 +275,23 @@ export const MODULES: ModuleSpec[] = [
     id: 'search',
     title: 'Search',
     algorithms: [
-      search({ id: 'search/linear', name: 'Linear search', generator: linearSearch, expected: { worst: 'n', random: 'n' } }),
-      search({ id: 'search/binary', name: 'Binary search', generator: binarySearch, expected: { worst: 'logn', random: 'logn' } }),
+      search({ id: 'search/linear', name: 'Linear search', generator: linearSearch, expected: { worst: 'n', random: 'n', uniform: 'n', skewed: 'n' } }),
+      search({ id: 'search/binary', name: 'Binary search', generator: binarySearch, expected: { worst: 'logn', random: 'logn', uniform: 'logn', skewed: 'logn' } }),
       search({
         id: 'search/binary-recursive',
         name: 'Binary search (recursive)',
         generator: binarySearchRecursive,
-        expected: { worst: 'logn', random: 'logn' },
+        expected: { worst: 'logn', random: 'logn', uniform: 'logn', skewed: 'logn' },
+      }),
+      search({ id: 'search/jump', name: 'Jump search', generator: jumpSearch, expected: { worst: 'sqrtn', random: 'sqrtn', uniform: 'sqrtn', skewed: 'sqrtn' } }),
+      search({
+        id: 'search/interpolation',
+        name: 'Interpolation search',
+        generator: interpolationSearch,
+        inputKinds: INTERPOLATION_KINDS,
+        // Evenly spaced values put the first guess right on the target; an absent target above
+        // the range fails the first range check. Random spacing costs log log n, a skewed array n.
+        expected: { worst: '1', random: '1', uniform: 'loglogn', skewed: 'n' },
       }),
     ],
   },
