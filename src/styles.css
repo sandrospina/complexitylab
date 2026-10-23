@@ -285,3 +285,8 @@ table.tableau td.lit { box-shadow: inset 0 0 0 2px var(--warn); }
 .quiz { margin: 0; padding-left: 20px; display: grid; gap: 14px; }
 .quiz-box { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--dim); }
 .quiz-arrow { min-width: 70px; }
+.breakdown-controls { margin-top: 10px; }
+table.breakdown { border-collapse: collapse; font-size: 13px; width: 100%; margin-top: 6px; }
+table.breakdown th, table.breakdown td { padding: 2px 8px 2px 0; text-align: right; border-bottom: 1px solid var(--border); }
+table.breakdown th[scope='row'] { text-align: left; font-weight: normal; }
+table.breakdown th.breakdown-group { text-align: left; font-weight: 600; font-size: 12px; padding-top: 8px; border-bottom: 0; }
