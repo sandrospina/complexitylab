@@ -9,17 +9,26 @@ export const binarySearch: Algorithm<SearchInput, number> = function* ({ arr, ta
   yield ins.alloc<SearchSnapshot>(3, { label: 'lo, hi, mid' });
   let lo = 0;
   let hi = arr.length - 1;
-  while (lo <= hi) {
+  ins.at(1);
+  for (;;) {
+    ins.at(2);
+    if (lo > hi) break;
     const mid = (lo + hi) >>> 1;
+    ins.at(3);
     const v = arr[mid]!;
-    yield ins.compare<SearchSnapshot>({ indices: [mid], value: v, snapshot: { i: mid, lo, hi } });
+    yield ins.compare<SearchSnapshot>({ indices: [mid], value: v, snapshot: { i: mid, lo, hi }, line: 4 });
     if (v === target) {
       yield ins.mark<SearchSnapshot>('found', { indices: [mid], snapshot: { i: mid, lo, hi, found: mid } });
       return mid;
     }
-    if (v < target) lo = mid + 1;
-    else hi = mid - 1;
+    if (v < target) {
+      ins.at(5);
+      lo = mid + 1;
+    } else {
+      ins.at(6);
+      hi = mid - 1;
+    }
   }
-  yield ins.mark<SearchSnapshot>('not found', { snapshot: { lo, hi } });
+  yield ins.mark<SearchSnapshot>('not found', { snapshot: { lo, hi }, line: 7 });
   return -1;
 };

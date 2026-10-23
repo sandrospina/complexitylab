@@ -7,15 +7,21 @@ export const binarySearchRecursive: Algorithm<SearchInput, number> = function* (
   function* search(lo: number, hi: number): Generator<TraceEvent, number, void> {
     yield ins.pushFrame<SearchSnapshot>({ label: `[${lo}, ${hi}]`, value: Math.max(0, hi - lo + 1), snapshot: { lo, hi } });
     let result = -1;
+    ins.at(1);
     if (lo <= hi) {
       const mid = (lo + hi) >>> 1;
+      ins.at(2);
       const v = arr[mid]!;
-      yield ins.compare<SearchSnapshot>({ indices: [mid], value: v, snapshot: { i: mid, lo, hi } });
+      yield ins.compare<SearchSnapshot>({ indices: [mid], value: v, snapshot: { i: mid, lo, hi }, line: 3 });
       if (v === target) {
         yield ins.mark<SearchSnapshot>('found', { indices: [mid], snapshot: { i: mid, lo, hi, found: mid } });
         result = mid;
+      } else if (v < target) {
+        ins.at(4);
+        result = yield* search(mid + 1, hi);
       } else {
-        result = v < target ? yield* search(mid + 1, hi) : yield* search(lo, mid - 1);
+        ins.at(5);
+        result = yield* search(lo, mid - 1);
       }
     }
     yield ins.popFrame();

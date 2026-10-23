@@ -80,8 +80,10 @@ export function ExploreTab() {
           step={s}
           metric="compare"
           metricLabel="compares"
+          n={n}
           entries={traces.map(({ a, trace }) => ({
             key: a,
+            algoId: algoId(a),
             name: SORT_META[a].name,
             color: SORT_META[a].color,
             trace,

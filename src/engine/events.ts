@@ -24,6 +24,8 @@ export interface EventDetail<S = unknown> {
   label?: string;
   /** View-specific state at this instant, e.g. { lo, hi, mid } for binary search. */
   snapshot?: S;
+  /** The pseudocode line this event executes (see src/pseudocode/). */
+  line?: number;
 }
 
 export interface TraceEvent<S = unknown> extends EventDetail<S> {

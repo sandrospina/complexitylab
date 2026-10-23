@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import type { TraceEvent } from '../engine/events';
+import type { Counters } from '../engine/instrument';
+import { CodePanel } from './CodePanel';
 
 interface Props {
   title: string;
   /** The event that produced the current frame, captioned under the drawing. */
   event?: TraceEvent;
   children: ReactNode;
+  /** With these, a "Show code" panel offers the pseudocode (with measured line counts) and the TypeScript. */
+  code?: { algoId: string; counters: Counters; n: number; finished: boolean };
 }
 
 function caption(e?: TraceEvent): string {
@@ -19,7 +23,7 @@ function caption(e?: TraceEvent): string {
 }
 
 /** Frame for a module's own drawing of the algorithm, plus a caption of the current event. */
-export function AlgorithmView({ title, event, children }: Props) {
+export function AlgorithmView({ title, event, children, code }: Props) {
   return (
     <section className="panel" aria-label={`${title} animation`}>
       <h2>{title}</h2>
@@ -27,6 +31,7 @@ export function AlgorithmView({ title, event, children }: Props) {
       <div className="event-caption muted mono" aria-live="polite">
         {caption(event)}
       </div>
+      {code && <CodePanel {...code} line={event?.line} />}
     </section>
   );
 }

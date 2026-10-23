@@ -8,7 +8,7 @@ import { linearSearch } from '../../algorithms/search/linear';
 import { bestFit } from '../../engine/fit';
 import { mulberry32 } from '../../engine/rng';
 import { runTrace } from '../../engine/runner';
-import { BENCH_N, MAX_ANIM_N, SEARCH_MODES, modeAlgos, useSearchStore } from '../../store/search';
+import { ALGO_ID, BENCH_N, MAX_ANIM_N, SEARCH_MODES, modeAlgos, useSearchStore } from '../../store/search';
 import type { SearchAlgo, SearchMode } from '../../store/search';
 import { useUrlParams } from '../../store/url-state';
 import { MemoryView } from '../../views/MemoryView';
@@ -114,8 +114,10 @@ export default function SearchModule() {
           step={s}
           metric="compare"
           metricLabel="compares"
+          n={n}
           entries={traces.map(({ a, trace }) => ({
             key: a,
+            algoId: ALGO_ID[a],
             name: META[a].name,
             color: META[a].color,
             trace,

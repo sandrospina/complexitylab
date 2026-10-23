@@ -23,6 +23,9 @@ Vite + React + TypeScript (strict), Zustand, D3/Observable Plot, Vitest, Playwri
   An input kind may set its own benchmark `sizes`, an `xLabel` when n is not the input size
   (e.g. bits of W, blank cells), and `aggregate: 'median'` for heavy-tailed random costs.
 - Full solves of large instances go through src/engine/solve.ts (a Web Worker), never the main thread.
+- Algorithms with pseudocode (src/pseudocode/) tag each execution of a pseudocode line exactly once: `line: k` on
+  the event that performs it, or `ins.at(k)` where no op does (loop tests, assignments). `at()` yields nothing and
+  counts no op. tests/pseudocode/ checks the measured line counts against the formulas shown to students.
 - Each module lives in src/modules/<name>/ and composes the three shared views:
   AlgorithmView, MemoryView, ScalingView.
 

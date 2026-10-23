@@ -11,17 +11,24 @@ export const bubbleSort: Algorithm<SortInput, number[]> = function* ({ arr }, in
   const a = arr.slice();
   yield ins.alloc<SortSnapshot>(3, { label: 'i, end, swapped' });
   let swapped = true;
-  for (let end = a.length - 1; end > 0 && swapped; end--) {
+  ins.at(1);
+  for (let end = a.length - 1; ; end--) {
+    ins.at(2);
+    if (!(end > 0 && swapped)) break;
     swapped = false;
-    for (let i = 0; i < end; i++) {
-      yield ins.compare<SortSnapshot>({ indices: [i, i + 1], snapshot: { lo: 0, hi: end } });
+    ins.at(3);
+    for (let i = 0; ; i++) {
+      ins.at(4);
+      if (i >= end) break;
+      yield ins.compare<SortSnapshot>({ indices: [i, i + 1], snapshot: { lo: 0, hi: end }, line: 5 });
       if (a[i]! > a[i + 1]!) {
         [a[i], a[i + 1]] = [a[i + 1]!, a[i]!];
-        yield ins.swap<SortSnapshot>({ indices: [i, i + 1], snapshot: { lo: 0, hi: end } });
+        yield ins.swap<SortSnapshot>({ indices: [i, i + 1], snapshot: { lo: 0, hi: end }, line: 6 });
         swapped = true;
       }
     }
     if (!swapped) yield ins.mark<SortSnapshot>('no swaps: sorted', { snapshot: { lo: 0, hi: end } });
+    ins.at(7);
   }
   yield ins.free<SortSnapshot>(3);
   return a;

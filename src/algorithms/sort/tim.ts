@@ -38,12 +38,15 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
   let span: SortSnapshot = { lo: 0, hi: n - 1 };
 
   /** a[k] = v, as an event the bars replay. */
-  function* put(k: number, v: number) {
+  // Pseudocode lines (src/pseudocode/sorting.ts): each TimSort line is a phase, and its count
+  // is the operations that phase performs. 3 runs, 5 binary insertion, 9 gallop past what is in
+  // place, 10 merge one at a time, 11 gallop inside a merge.
+  function* put(k: number, v: number, line: number) {
     a[k] = v;
-    yield ins.write<SortSnapshot>({ indices: [k], value: v, snapshot: span });
+    yield ins.write<SortSnapshot>({ indices: [k], value: v, snapshot: span, line });
   }
-  function* less(x: number, y: number, indices?: number[], label?: string) {
-    yield ins.compare<SortSnapshot>({ indices, label, snapshot: span });
+  function* less(x: number, y: number, line: number, indices?: number[], label?: string) {
+    yield ins.compare<SortSnapshot>({ indices, label, snapshot: span, line });
     return x < y;
   }
 
@@ -51,14 +54,14 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
   function* countRun(lo: number): Generator<ReturnType<Instrument['mark']>, number> {
     if (lo + 1 >= n) return n - lo;
     let hi = lo + 2;
-    if (yield* less(a[lo + 1]!, a[lo]!, [lo, lo + 1], 'run')) {
-      while (hi < n && (yield* less(a[hi]!, a[hi - 1]!, [hi - 1, hi], 'run'))) hi++;
+    if (yield* less(a[lo + 1]!, a[lo]!, 3, [lo, lo + 1], 'run')) {
+      while (hi < n && (yield* less(a[hi]!, a[hi - 1]!, 3, [hi - 1, hi], 'run'))) hi++;
       for (let i = lo, j = hi - 1; i < j; i++, j--) {
         [a[i], a[j]] = [a[j]!, a[i]!];
-        yield ins.swap<SortSnapshot>({ indices: [i, j], label: 'reverse run', snapshot: span });
+        yield ins.swap<SortSnapshot>({ indices: [i, j], label: 'reverse run', snapshot: span, line: 3 });
       }
     } else {
-      while (hi < n && !(yield* less(a[hi]!, a[hi - 1]!, [hi - 1, hi], 'run'))) hi++;
+      while (hi < n && !(yield* less(a[hi]!, a[hi - 1]!, 3, [hi - 1, hi], 'run'))) hi++;
     }
     return hi - lo;
   }
@@ -71,11 +74,11 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
       let r = start;
       while (l < r) {
         const p = (l + r) >> 1;
-        if (yield* less(pivot, a[p]!, [p, start], 'binary insertion')) r = p;
+        if (yield* less(pivot, a[p]!, 5, [p, start], 'binary insertion')) r = p;
         else l = p + 1;
       }
-      for (let k = start; k > l; k--) yield* put(k, a[k - 1]!);
-      if (l !== start) yield* put(l, pivot);
+      for (let k = start; k > l; k--) yield* put(k, a[k - 1]!, 5);
+      if (l !== start) yield* put(l, pivot, 5);
     }
   }
 
@@ -83,10 +86,10 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
    * Where key goes among the n sorted values get(0..n−1), searching out from `hint`:
    * leftmost position (before equals) or rightmost (after equals).
    */
-  function* gallop(key: number, get: (i: number) => number, len: number, hint: number, right: boolean) {
+  function* gallop(key: number, get: (i: number) => number, len: number, hint: number, right: boolean, line: number) {
     const goesAfter = function* (x: number) {
       // Leftmost: skip x while x < key. Rightmost: skip x while x <= key, i.e. !(key < x).
-      return right ? !(yield* less(key, x, undefined, 'gallop')) : yield* less(x, key, undefined, 'gallop');
+      return right ? !(yield* less(key, x, line, undefined, 'gallop')) : yield* less(x, key, line, undefined, 'gallop');
     };
     let lastOfs = 0;
     let ofs = 1;
@@ -124,12 +127,12 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
   function* mergeLo(pa: number, na: number, pb: number, nb: number) {
     const tmp = a.slice(pa, pa + na);
     yield ins.alloc<SortSnapshot>(na, { label: 'merge buffer', snapshot: span });
-    for (let k = 0; k < na; k++) yield ins.write<SortSnapshot>({ label: 'copy to buffer', snapshot: span });
+    for (let k = 0; k < na; k++) yield ins.write<SortSnapshot>({ label: 'copy to buffer', snapshot: span, line: 10 });
     let dest = pa;
     let i = 0;
     let j = pb;
     // The first element of B is known to be smaller than A's first (galloped past already).
-    yield* put(dest++, a[j++]!);
+    yield* put(dest++, a[j++]!, 10);
     nb--;
     done: if (nb > 0 && na > 1) {
       for (;;) {
@@ -137,13 +140,13 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
         let bWins = 0;
         // One element at a time until one side wins MIN_GALLOP times in a row.
         do {
-          if (yield* less(a[j]!, tmp[i]!, [j], 'merge')) {
-            yield* put(dest++, a[j++]!);
+          if (yield* less(a[j]!, tmp[i]!, 10, [j], 'merge')) {
+            yield* put(dest++, a[j++]!, 10);
             bWins++;
             aWins = 0;
             if (--nb === 0) break done;
           } else {
-            yield* put(dest++, tmp[i++]!);
+            yield* put(dest++, tmp[i++]!, 10);
             aWins++;
             bWins = 0;
             if (--na === 1) break done;
@@ -153,17 +156,17 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
         minGallop++;
         do {
           minGallop -= minGallop > 1 ? 1 : 0;
-          aWins = yield* gallop(a[j]!, (k) => tmp[i + k]!, na, 0, true);
-          for (let k = 0; k < aWins; k++) yield* put(dest++, tmp[i++]!);
+          aWins = yield* gallop(a[j]!, (k) => tmp[i + k]!, na, 0, true, 11);
+          for (let k = 0; k < aWins; k++) yield* put(dest++, tmp[i++]!, 11);
           na -= aWins;
           if (na <= 1) break done;
-          yield* put(dest++, a[j++]!);
+          yield* put(dest++, a[j++]!, 11);
           if (--nb === 0) break done;
-          bWins = yield* gallop(tmp[i]!, (k) => a[j + k]!, nb, 0, false);
-          for (let k = 0; k < bWins; k++) yield* put(dest++, a[j++]!);
+          bWins = yield* gallop(tmp[i]!, (k) => a[j + k]!, nb, 0, false, 11);
+          for (let k = 0; k < bWins; k++) yield* put(dest++, a[j++]!, 11);
           nb -= bWins;
           if (nb === 0) break done;
-          yield* put(dest++, tmp[i++]!);
+          yield* put(dest++, tmp[i++]!, 11);
           if (--na === 1) break done;
         } while (aWins >= MIN_GALLOP || bWins >= MIN_GALLOP);
         minGallop++;
@@ -171,10 +174,10 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
     }
     if (na === 1 && nb > 0) {
       // The last element of A goes after the rest of B.
-      for (let k = 0; k < nb; k++) yield* put(dest++, a[j++]!);
-      yield* put(dest, tmp[i]!);
+      for (let k = 0; k < nb; k++) yield* put(dest++, a[j++]!, 10);
+      yield* put(dest, tmp[i]!, 10);
     } else {
-      for (let k = 0; k < na; k++) yield* put(dest++, tmp[i++]!);
+      for (let k = 0; k < na; k++) yield* put(dest++, tmp[i++]!, 10);
     }
     yield ins.free<SortSnapshot>(tmp.length, { label: 'merge buffer', snapshot: span });
   }
@@ -183,25 +186,25 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
   function* mergeHi(pa: number, na: number, pb: number, nb: number) {
     const tmp = a.slice(pb, pb + nb);
     yield ins.alloc<SortSnapshot>(nb, { label: 'merge buffer', snapshot: span });
-    for (let k = 0; k < nb; k++) yield ins.write<SortSnapshot>({ label: 'copy to buffer', snapshot: span });
+    for (let k = 0; k < nb; k++) yield ins.write<SortSnapshot>({ label: 'copy to buffer', snapshot: span, line: 10 });
     let dest = pb + nb - 1;
     let i = nb - 1;
     let j = pa + na - 1;
     // The last element of A is known to be larger than B's last.
-    yield* put(dest--, a[j--]!);
+    yield* put(dest--, a[j--]!, 10);
     na--;
     done: if (na > 0 && nb > 1) {
       for (;;) {
         let aWins = 0;
         let bWins = 0;
         do {
-          if (yield* less(tmp[i]!, a[j]!, [j], 'merge')) {
-            yield* put(dest--, a[j--]!);
+          if (yield* less(tmp[i]!, a[j]!, 10, [j], 'merge')) {
+            yield* put(dest--, a[j--]!, 10);
             aWins++;
             bWins = 0;
             if (--na === 0) break done;
           } else {
-            yield* put(dest--, tmp[i--]!);
+            yield* put(dest--, tmp[i--]!, 10);
             bWins++;
             aWins = 0;
             if (--nb === 1) break done;
@@ -210,17 +213,17 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
         minGallop++;
         do {
           minGallop -= minGallop > 1 ? 1 : 0;
-          aWins = na - (yield* gallop(tmp[i]!, (k) => a[pa + k]!, na, na - 1, true));
-          for (let k = 0; k < aWins; k++) yield* put(dest--, a[j--]!);
+          aWins = na - (yield* gallop(tmp[i]!, (k) => a[pa + k]!, na, na - 1, true, 11));
+          for (let k = 0; k < aWins; k++) yield* put(dest--, a[j--]!, 11);
           na -= aWins;
           if (na === 0) break done;
-          yield* put(dest--, tmp[i--]!);
+          yield* put(dest--, tmp[i--]!, 11);
           if (--nb === 1) break done;
-          bWins = nb - (yield* gallop(a[j]!, (k) => tmp[k]!, nb, nb - 1, false));
-          for (let k = 0; k < bWins; k++) yield* put(dest--, tmp[i--]!);
+          bWins = nb - (yield* gallop(a[j]!, (k) => tmp[k]!, nb, nb - 1, false, 11));
+          for (let k = 0; k < bWins; k++) yield* put(dest--, tmp[i--]!, 11);
           nb -= bWins;
           if (nb <= 1) break done;
-          yield* put(dest--, a[j--]!);
+          yield* put(dest--, a[j--]!, 11);
           if (--na === 0) break done;
         } while (aWins >= MIN_GALLOP || bWins >= MIN_GALLOP);
         minGallop++;
@@ -228,10 +231,10 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
     }
     if (nb === 1 && na > 0) {
       // The first element of B goes before the rest of A.
-      for (let k = 0; k < na; k++) yield* put(dest--, a[j--]!);
-      yield* put(dest, tmp[i]!);
+      for (let k = 0; k < na; k++) yield* put(dest--, a[j--]!, 10);
+      yield* put(dest, tmp[i]!, 10);
     } else {
-      for (let k = 0; k < nb; k++) yield* put(dest--, tmp[i--]!);
+      for (let k = 0; k < nb; k++) yield* put(dest--, tmp[i--]!, 10);
     }
     yield ins.free<SortSnapshot>(tmp.length, { label: 'merge buffer', snapshot: span });
   }
@@ -245,11 +248,11 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
     span = { lo: A.base, hi: B.base + B.len - 1 };
     yield ins.mark<SortSnapshot>(`merge runs of ${A.len} and ${B.len}`, { snapshot: span });
     // Elements of A not above B's first are already in place, as are those of B not below A's last.
-    const k = yield* gallop(a[B.base]!, (x) => a[A.base + x]!, A.len, 0, true);
+    const k = yield* gallop(a[B.base]!, (x) => a[A.base + x]!, A.len, 0, true, 9);
     const pa = A.base + k;
     const na = A.len - k;
     if (na === 0) return;
-    const nb = yield* gallop(a[pa + na - 1]!, (x) => a[B.base + x]!, B.len, B.len - 1, false);
+    const nb = yield* gallop(a[pa + na - 1]!, (x) => a[B.base + x]!, B.len, B.len - 1, false, 9);
     if (nb === 0) return;
     if (na <= nb) yield* mergeLo(pa, na, B.base, nb);
     else yield* mergeHi(pa, na, B.base, nb);
@@ -273,10 +276,13 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
 
   if (n >= 2) {
     const mr = minRun(n);
-    yield ins.alloc<SortSnapshot>(1, { label: 'run stack', snapshot: span });
-    for (let lo = 0; lo < n; ) {
+    yield ins.alloc<SortSnapshot>(1, { label: 'run stack', snapshot: span, line: 1 });
+    for (let lo = 0; ; ) {
+      ins.at(2);
+      if (lo >= n) break;
       span = { lo, hi: n - 1 };
       let len = yield* countRun(lo);
+      ins.at(4);
       if (len < mr) {
         const force = Math.min(n - lo, mr);
         span = { lo, hi: lo + force - 1 };
@@ -284,13 +290,15 @@ export const timSort: Algorithm<SortInput, number[]> = function* ({ arr }, ins) 
         len = force;
       }
       runs.push({ base: lo, len });
-      yield ins.mark<SortSnapshot>(`run of ${len} at ${lo}`, { snapshot: { lo, hi: lo + len - 1 } });
+      yield ins.mark<SortSnapshot>(`run of ${len} at ${lo}`, { snapshot: { lo, hi: lo + len - 1 }, line: 6 });
       yield* mergeCollapse();
+      ins.at(7);
       lo += len;
     }
     while (runs.length > 1) {
       let i = runs.length - 2;
       if (i > 0 && runs[i - 1]!.len < runs[i + 1]!.len) i--;
+      ins.at(8);
       yield* mergeAt(i);
     }
     yield ins.free<SortSnapshot>(1, { label: 'run stack', snapshot: span });

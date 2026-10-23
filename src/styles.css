@@ -318,3 +318,21 @@ table.lcs-grid td.now { background: var(--warn); color: #fff; }
 .home-card { display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer; padding: 14px; }
 .home-card:hover { border-color: var(--accent); }
 .home-card strong { font-size: 16px; }
+.code-panel { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+table.pseudo { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.pseudo th, table.pseudo td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.pseudo th { color: var(--muted); font-weight: 600; font-size: 12px; }
+table.pseudo tr.now td { background: color-mix(in srgb, var(--warn) 22%, transparent); }
+table.pseudo tr.dominant .pseudo-code { font-weight: 700; }
+table.pseudo tr.pseudo-section td { border-bottom: 0; padding-top: 10px; font-weight: 700; }
+.pseudo-code { white-space: pre-wrap; }
+.pseudo-note { font-size: 12px; margin-top: 2px; }
+.derivation .katex-display { margin: 2px 0; overflow-x: auto; overflow-y: hidden; }
+pre.source { margin: 0; max-height: 420px; overflow: auto; font: 12px/1.5 ui-monospace, Menlo, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 0; }
+pre.source > div { padding: 0 10px; white-space: pre; }
+pre.source > div.now { background: color-mix(in srgb, var(--warn) 25%, transparent); }
+pre.source .ln { display: inline-block; width: 3em; color: var(--muted); user-select: none; }
+.tk-comment { color: var(--muted); font-style: italic; }
+.tk-string { color: var(--ok); }
+.tk-keyword { color: var(--accent); font-weight: 600; }
+.tk-number { color: var(--warn); }

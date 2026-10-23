@@ -12,22 +12,31 @@ export const jumpSearch: Algorithm<SearchInput, number> = function* ({ arr, targ
   yield ins.alloc<SearchSnapshot>(3, { label: 'block start, jump, m' });
   let lo = 0;
   let at = Math.min(m, n) - 1;
+  ins.at(1);
   // Jump while the end of the block is still smaller than the target.
-  while (at < n - 1) {
-    yield ins.compare<SearchSnapshot>({ indices: [at], value: arr[at], label: 'jump', snapshot: { i: at, lo, hi: at } });
+  for (;;) {
+    ins.at(2);
+    if (at >= n - 1) break;
+    yield ins.compare<SearchSnapshot>({ indices: [at], value: arr[at], label: 'jump', snapshot: { i: at, lo, hi: at }, line: 3 });
     if (arr[at]! >= target) break;
+    ins.at(4);
     lo = at + 1;
     at = Math.min(at + m, n - 1);
   }
   // The target, if present, is in [lo, at]: scan it.
-  for (let i = lo; i <= at && i < n; i++) {
-    yield ins.compare<SearchSnapshot>({ indices: [i], value: arr[i], label: 'scan', snapshot: { i, lo, hi: at } });
+  for (let i = lo; ; i++) {
+    ins.at(5);
+    if (i > at || i >= n) break;
+    yield ins.compare<SearchSnapshot>({ indices: [i], value: arr[i], label: 'scan', snapshot: { i, lo, hi: at }, line: 6 });
     if (arr[i] === target) {
       yield ins.mark<SearchSnapshot>('found', { indices: [i], snapshot: { i, lo, hi: at, found: i } });
       return i;
     }
-    if (arr[i]! > target) break;
+    if (arr[i]! > target) {
+      ins.at(7);
+      break;
+    }
   }
-  yield ins.mark<SearchSnapshot>('not found', { snapshot: { lo, hi: at } });
+  yield ins.mark<SearchSnapshot>('not found', { snapshot: { lo, hi: at }, line: 8 });
   return -1;
 };

@@ -14,6 +14,8 @@ export interface Counters {
   peakMem: number;
   stackDepth: number;
   peakStack: number;
+  /** Times each pseudocode line has run, by line number (index 0 unused). */
+  lines: number[];
 }
 
 export class BudgetExceeded extends Error {
@@ -30,11 +32,11 @@ const TIME_CHECK_INTERVAL = 1024;
 
 export function emptyCounters(): Counters {
   const ops = Object.fromEntries(OP_KINDS.map((k) => [k, 0])) as Record<OpKind, number>;
-  return { ops, totalOps: 0, memCells: 0, peakMem: 0, stackDepth: 0, peakStack: 0 };
+  return { ops, totalOps: 0, memCells: 0, peakMem: 0, stackDepth: 0, peakStack: 0, lines: [] };
 }
 
 export function cloneCounters(c: Counters): Counters {
-  return { ...c, ops: { ...c.ops } };
+  return { ...c, ops: { ...c.ops }, lines: c.lines.slice() };
 }
 
 /**
@@ -114,12 +116,27 @@ export class Instrument {
 
   /** Uncounted annotation for the animation. */
   mark<S>(label: string, d?: EventDetail<S>): TraceEvent<S> {
+    if (d?.line !== undefined) this.countLine(d.line);
     if (!this.record) return DISCARDED as TraceEvent<S>;
     return { ...d, op: 'mark', label };
   }
 
+  /**
+   * Counts one execution of a pseudocode line that no operation stands for (a loop test,
+   * an assignment). It yields no event and counts no op, so traces and op totals are unchanged.
+   */
+  at(line: number): void {
+    this.countLine(line);
+  }
+
+  private countLine(line: number) {
+    const l = this.counters.lines;
+    l[line] = (l[line] ?? 0) + 1;
+  }
+
   private op<S>(op: OpKind, d?: EventDetail<S>): TraceEvent<S> {
     const c = this.counters;
+    if (d?.line !== undefined) this.countLine(d.line);
     if (!BOOKKEEPING.has(op)) {
       const { maxOps, maxMs } = this.budget;
       if (maxOps !== undefined && c.totalOps >= maxOps) throw new BudgetExceeded('ops');

@@ -11,6 +11,8 @@ export interface RaceEntry<S> {
   color: string;
   trace: TraceResult<unknown>;
   render: (frame: Frame<S>) => ReactNode;
+  /** Registry id: with it (and the race's n), the entry offers its pseudocode and source. */
+  algoId?: string;
 }
 
 interface Props<S> {
@@ -19,10 +21,12 @@ interface Props<S> {
   /** The count compared head to head, e.g. 'compare'. */
   metric: OpKind | 'total';
   metricLabel: string;
+  /** Input size, for the code panel's measured-versus-formula check. */
+  n?: number;
 }
 
 /** One or more algorithms animated in lock-step on the same timeline, with a live head-to-head count. */
-export function RaceView<S>({ step, entries, metric, metricLabel }: Props<S>) {
+export function RaceView<S>({ step, entries, metric, metricLabel, n }: Props<S>) {
   const frames = entries.map((e) => ({ entry: e, frame: frameAt<S>(e.trace, step) }));
   const count = (f: Frame<S>) => (metric === 'total' ? f.counters.totalOps : f.counters.ops[metric]);
   return (
@@ -39,7 +43,16 @@ export function RaceView<S>({ step, entries, metric, metricLabel }: Props<S>) {
         </div>
       )}
       {frames.map(({ entry, frame }) => (
-        <AlgorithmView key={entry.key} title={entry.name} event={frame.event}>
+        <AlgorithmView
+          key={entry.key}
+          title={entry.name}
+          event={frame.event}
+          code={
+            entry.algoId && n !== undefined
+              ? { algoId: entry.algoId, counters: frame.counters, n, finished: frame.step >= entry.trace.steps.length }
+              : undefined
+          }
+        >
           {entry.render(frame)}
         </AlgorithmView>
       ))}
