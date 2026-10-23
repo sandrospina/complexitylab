@@ -10,12 +10,11 @@ import { TreeTab } from './TreeTab';
 const TAB_LABEL: Record<Tab, string> = { explore: 'Explore & race', adversary: 'Adversary', tree: 'Recursion tree' };
 
 export default function SortingModule() {
-  const { tab, algo, vs, n, preset, seed, step, treeAlgo, advAlgo, advArr } = useSortingStore();
+  const { tab, algos, n, preset, seed, step, treeAlgo, advAlgo, advArr } = useSortingStore();
   const { setTab, configure } = useSortingStore.getState();
   useUrlParams('sorting', {
     tab,
-    algo,
-    vs,
+    algos: algos.join(','),
     n,
     preset,
     seed,

@@ -64,7 +64,8 @@ export function ScalingView({ series, markers = [], domain, yLabel = 'operations
       marginLeft: 60,
       style: { background: 'transparent', color: 'currentColor' },
       x: { type: logX ? 'log' : 'linear', domain: logX ? domain : [0, domain[1]], label: `${xLabel} →`, grid: true },
-      y: { type: logY ? 'log' : 'linear', label: `↑ ${yLabel}`, grid: true, nice: true },
+      // A log axis would otherwise label every 2, 3, … 9 between powers of ten.
+      y: { type: logY ? 'log' : 'linear', label: `↑ ${yLabel}`, grid: true, nice: true, ticks: logY ? 6 : undefined, tickFormat: logY ? '~s' : undefined },
       marks: [
         Plot.line(fitted, { x: 'n', y: 'ops', z: 'label', stroke: (d) => color(d.series), strokeDasharray: '5,4', strokeOpacity: 0.7 }),
         Plot.line(measured, { x: 'n', y: 'ops', z: 'label', stroke: (d) => color(d.label), strokeWidth: 2 }),

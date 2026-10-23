@@ -36,8 +36,8 @@ export function parsePermutation(raw: string | null): number[] | undefined {
 }
 
 interface Config {
-  algo: SortAlgo;
-  vs: SortAlgo | 'none';
+  /** The sorts on the explore tab: raced together and plotted together, in SORT_ALGOS order. */
+  algos: SortAlgo[];
   n: number;
   preset: SortInputKind;
   seed: number;
@@ -57,21 +57,29 @@ interface SortingState extends Config {
   setTab: (t: Tab) => void;
   configure: (c: Partial<Config>) => void;
   setStep: (s: number) => void;
+  /** Adds or removes a sort from the comparison; the last one cannot be removed. */
+  toggleAlgo: (a: SortAlgo) => void;
+  selectAll: () => void;
   setAdversary: (a: { algo?: SortAlgo; arr?: number[] }, score: number) => void;
   predict: (a: SortAlgo, c: ComplexityClass) => void;
   runBench: () => void;
 }
 
-export const raceAlgos = ({ algo, vs }: Pick<Config, 'algo' | 'vs'>): SortAlgo[] =>
-  vs === 'none' || vs === algo ? [algo] : [algo, vs];
+/** `algos=a,b,c`, or the older `algo=a&vs=b` links; always at least one, in SORT_ALGOS order. */
+export function parseAlgos(params: URLSearchParams): SortAlgo[] {
+  const valid = (x: string | null): x is SortAlgo => SORT_ALGOS.includes(x as SortAlgo);
+  const listed = (params.get('algos') ?? '').split(',').filter(valid);
+  const legacy = [params.get('algo'), params.get('vs')].filter(valid);
+  const chosen = new Set(listed.length ? listed : legacy.length ? legacy : (['insertion'] as SortAlgo[]));
+  return SORT_ALGOS.filter((a) => chosen.has(a));
+}
 
 export const useSortingStore = create<SortingState>()((set, get) => {
   let cancel = () => {};
   const advArr = parsePermutation(new URLSearchParams(location.search).get('adv')) ?? shuffled(10, 1);
   return {
     tab: enumParam('tab', TABS, 'explore'),
-    algo: enumParam('algo', SORT_ALGOS, 'insertion'),
-    vs: enumParam('vs', [...SORT_ALGOS, 'none'] as const, 'none'),
+    algos: parseAlgos(new URLSearchParams(location.search)),
     n: intParam('n', 24, 2, MAX_SORT_N),
     preset: enumParam('preset', PRESETS, 'random'),
     seed: intParam('seed', 1, 0, 1e9),
@@ -91,6 +99,13 @@ export const useSortingStore = create<SortingState>()((set, get) => {
       set({ ...c, step: 0, ...(stale ? { bench: {} } : {}) });
     },
     setStep: (step) => set({ step: Math.max(0, step) }),
+    toggleAlgo: (a) =>
+      set((s) => {
+        const on = s.algos.includes(a);
+        if (on && s.algos.length === 1) return {};
+        return { algos: SORT_ALGOS.filter((x) => (x === a ? !on : s.algos.includes(x))), step: 0 };
+      }),
+    selectAll: () => set({ algos: [...SORT_ALGOS], step: 0 }),
     setAdversary: ({ algo, arr }, score) =>
       set((s) => {
         const a = algo ?? s.advAlgo;
@@ -105,7 +120,7 @@ export const useSortingStore = create<SortingState>()((set, get) => {
     runBench: () => {
       cancel();
       const { preset, seed } = get();
-      const algos = raceAlgos(get());
+      const { algos } = get();
       const byId = Object.fromEntries(algos.map((a) => [algoId(a), a])) as Record<string, SortAlgo>;
       set((s) => ({ benchRunning: true, bench: { ...s.bench, ...Object.fromEntries(algos.map((a) => [a, []])) } }));
       cancel = runBenchmarks(

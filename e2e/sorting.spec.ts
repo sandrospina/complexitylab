@@ -65,6 +65,41 @@ test('race scrubs both sorts in lock-step', async ({ page }) => {
   await expect(score).toContainText('Merge sort: 32 compares');
 });
 
+test('pick any set of sorts: they race together and share one scaling plot', async ({ page }) => {
+  await page.goto('/?m=sorting&tab=explore&algos=insertion&n=16&preset=reversed');
+  const chip = (name: string) => page.getByRole('group', { name: 'Sorts to compare' }).getByRole('button', { name });
+  await expect(chip('Insertion sort')).toHaveAttribute('aria-pressed', 'true');
+  await chip('Bubble sort').click();
+  await chip('Merge sort').click();
+  await expect(page).toHaveURL(/algos=bubble%2Cinsertion%2Cmerge/);
+  const score = page.getByTestId('race-score');
+  for (const name of ['Bubble sort', 'Insertion sort', 'Merge sort']) await expect(score).toContainText(`${name}:`);
+
+  await page.getByRole('button', { name: 'All', exact: true }).click();
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  for (const [name, cls] of [
+    ['Bubble sort', 'O(n²)'],
+    ['Insertion sort', 'O(n²)'],
+    ['Merge sort', 'O(n log n)'],
+    ['Quicksort (last pivot)', 'O(n²)'],
+    ['Quicksort (random pivot)', 'O(n log n)'],
+  ] as const)
+    await expect(page.getByTestId(`fit-${name}`)).toContainText(cls, { timeout: 60_000 });
+});
+
+test('the last selected sort cannot be removed, and old algo/vs links still work', async ({ page }) => {
+  await page.goto('/?m=sorting&tab=explore&algo=quick-naive&vs=bubble&n=8');
+  const group = page.getByRole('group', { name: 'Sorts to compare' });
+  await expect(group.getByRole('button', { name: 'Bubble sort' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(group.getByRole('button', { name: 'Quicksort (last pivot)' })).toHaveAttribute('aria-pressed', 'true');
+  await group.getByRole('button', { name: 'Bubble sort' }).click();
+  const last = group.getByRole('button', { name: 'Quicksort (last pivot)' });
+  await expect(last).toHaveAttribute('aria-disabled', 'true');
+  await last.click({ force: true });
+  await expect(last).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL(/algos=quick-naive(&|$)/);
+});
+
 test('scaling run on sorted input fits n² for naive quicksort', async ({ page }) => {
   await page.goto('/?m=sorting&tab=explore&algo=quick-naive&preset=sorted');
   await page.getByText('O(n²)', { exact: true }).click();

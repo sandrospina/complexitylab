@@ -5,8 +5,7 @@ import { replayArray } from '../../algorithms/sort/replay';
 import { bestFit } from '../../engine/fit';
 import { mulberry32 } from '../../engine/rng';
 import { runTrace } from '../../engine/runner';
-import { algoId, raceAlgos, SORT_ALGOS, useSortingStore } from '../../store/sorting';
-import type { SortAlgo } from '../../store/sorting';
+import { algoId, SORT_ALGOS, useSortingStore } from '../../store/sorting';
 import { MemoryView } from '../../views/MemoryView';
 import { PredictWidget } from '../../views/PredictWidget';
 import { RaceView } from '../../views/RaceView';
@@ -19,16 +18,13 @@ import { BarsView } from './BarsView';
 import { SORT_META } from './meta';
 
 export function ExploreTab() {
-  const { algo, vs, n, preset, seed, step, predictions, bench, benchRunning } = useSortingStore();
-  const { configure, setStep, predict, runBench } = useSortingStore.getState();
+  const { algos, n, preset, seed, step, predictions, bench, benchRunning } = useSortingStore();
+  const { toggleAlgo, selectAll, setStep, predict, runBench } = useSortingStore.getState();
 
-  const algos = raceAlgos({ algo, vs });
   const input = useMemo(() => makeSortInput(n, preset, mulberry32(seed)), [n, preset, seed]);
-  const traces = useMemo(
-    () => algos.map((a) => ({ a, trace: runTrace(SORT_META[a].generator, input) })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- algos is derived from algo and vs
-    [algo, vs, input],
-  );
+  const traces = useMemo(() => algos.map((a) => ({ a, trace: runTrace(SORT_META[a].generator, input) })), [algos, input]);
+  // Sorts added since the last scaling run have no curve yet.
+  const unmeasured = algos.filter((a) => !bench[a]?.length);
   const maxStep = Math.max(...traces.map((t) => t.trace.steps.length));
   const s = Math.min(step, maxStep);
   const frames = traces.map(({ a, trace }) => ({ a, ...frameAt(trace, s) }));
@@ -45,28 +41,32 @@ export function ExploreTab() {
 
   return (
     <div className="stack">
-      <section className="panel controls" aria-label="Algorithms">
-        <label>
-          Algorithm
-          <select value={algo} onChange={(e) => configure({ algo: e.target.value as SortAlgo })}>
-            {SORT_ALGOS.map((a) => (
-              <option key={a} value={a}>
-                {SORT_META[a].name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Race against
-          <select value={vs} onChange={(e) => configure({ vs: e.target.value as SortAlgo | 'none' })}>
-            <option value="none">Nobody</option>
-            {SORT_ALGOS.filter((a) => a !== algo).map((a) => (
-              <option key={a} value={a}>
-                {SORT_META[a].name}
-              </option>
-            ))}
-          </select>
-        </label>
+      <section className="panel stack" aria-label="Algorithms">
+        <div className="controls" role="group" aria-label="Sorts to compare">
+          <span>Compare</span>
+          {SORT_ALGOS.map((a) => {
+            const on = algos.includes(a);
+            const last = on && algos.length === 1;
+            return (
+              <button
+                key={a}
+                className="algo-chip"
+                aria-pressed={on}
+                aria-disabled={last}
+                title={last ? 'At least one sort stays selected' : undefined}
+                onClick={() => toggleAlgo(a)}
+              >
+                <span style={{ color: SORT_META[a].color }}>●</span> {SORT_META[a].name}
+              </button>
+            );
+          })}
+          <button onClick={selectAll} disabled={algos.length === SORT_ALGOS.length}>
+            All
+          </button>
+        </div>
+        <span className="muted" style={{ fontSize: 13 }}>
+          Every selected sort runs on the same input: they race on the timeline and share the scaling plot.
+        </span>
       </section>
 
       <div className="grid-2">
@@ -104,7 +104,12 @@ export function ExploreTab() {
             {benchRunning ? 'Running…' : 'Run scaling experiment'}
           </button>
         </div>
-        <ScalingView series={series} markers={markers} domain={domain} />
+        {unmeasured.length > 0 && Object.values(bench).some((b) => b?.length) && !benchRunning && (
+          <p className="muted" style={{ margin: 0 }}>
+            Run again to add {unmeasured.map((a) => SORT_META[a].name).join(', ')} to the plot.
+          </p>
+        )}
+        <ScalingView series={series} markers={markers} domain={domain} initialLogY={algos.length > 2} />
       </section>
     </div>
   );

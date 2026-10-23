@@ -290,3 +290,6 @@ table.breakdown { border-collapse: collapse; font-size: 13px; width: 100%; margi
 table.breakdown th, table.breakdown td { padding: 2px 8px 2px 0; text-align: right; border-bottom: 1px solid var(--border); }
 table.breakdown th[scope='row'] { text-align: left; font-weight: normal; }
 table.breakdown th.breakdown-group { text-align: left; font-weight: 600; font-size: 12px; padding-top: 8px; border-bottom: 0; }
+.algo-chip[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); }
+.algo-chip[aria-pressed='false'] { color: var(--muted); }
+.algo-chip[aria-disabled='true'] { cursor: default; }
