@@ -10,6 +10,8 @@ import { useCycleStore } from '../../store/cycle';
 import { FIB_ALGOS, maxN, TABS, useTimeSpaceStore } from '../../store/time-space';
 import type { FibAlgo, Tab } from '../../store/time-space';
 import { CycleTab } from './CycleTab';
+import { LcsTab } from './LcsTab';
+import { useLcsStore } from '../../store/lcs';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
 import { CallTreeView } from '../../views/CallTreeView';
@@ -56,11 +58,12 @@ function Cells({ label, cells }: { label: string; cells: { key: string; v?: stri
   );
 }
 
-const TAB_LABEL: Record<Tab, string> = { fib: 'Fibonacci', cycle: 'Cycle detection' };
+const TAB_LABEL: Record<Tab, string> = { fib: 'Fibonacci', cycle: 'Cycle detection', lcs: 'Longest common subsequence' };
 
 export default function TimeSpaceModule() {
   const { tab, algo, n, step, yMetric } = useTimeSpaceStore();
   const cycle = useCycleStore();
+  const lcs = useLcsStore();
   useUrlParams('time-space', {
     tab,
     algo,
@@ -72,6 +75,11 @@ export default function TimeSpaceModule() {
     cseed: cycle.seed,
     cstep: cycle.step,
     cy: cycle.yMetric,
+    ln: lcs.n,
+    lk: lcs.kind,
+    lseed: lcs.seed,
+    lstep: lcs.step,
+    ly: lcs.yMetric,
   });
   return (
     <div className="stack">
@@ -83,7 +91,9 @@ export default function TimeSpaceModule() {
         ))}
       </div>
       <div role="tabpanel" aria-label={TAB_LABEL[tab]}>
-        {tab === 'fib' ? <FibTab /> : <CycleTab />}
+        {tab === 'fib' && <FibTab />}
+        {tab === 'cycle' && <CycleTab />}
+        {tab === 'lcs' && <LcsTab />}
       </div>
     </div>
   );

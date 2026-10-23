@@ -39,3 +39,23 @@ test('cycle detection: both find the loop; the hash set needs O(n) cells, Floyd 
   await expect(page.getByTestId("fit-Floyd's tortoise and hare")).toContainText('O(n)');
   await expect(page).toHaveURL(/tab=cycle/);
 });
+
+test('LCS: same length three ways; the table needs n² cells, two rows and Hirschberg O(n)', async ({ page }) => {
+  await page.goto('/?m=time-space&tab=lcs&ln=7&lk=similar');
+  const slider = page.getByRole('slider', { name: 'Scrub timeline' });
+  await slider.fill((await slider.getAttribute('max'))!);
+  const table = await page.getByTestId('result-lcs-table').innerText();
+  const length = table.match(/^length (\d+)/)![1];
+  await expect(page.getByTestId('result-lcs-rows')).toHaveText(`length ${length}, the subsequence is lost`);
+  await expect(page.getByTestId('result-lcs-hirschberg')).toContainText(`length ${length}:`);
+  const memory = page.getByRole('region', { name: 'Memory and operations' });
+  await expect(memory.locator('.mem-block', { hasText: 'Full table' })).toContainText('peak 64');
+  await expect(memory.locator('.mem-block', { hasText: 'Two rows' })).toContainText('peak 16');
+
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  await expect(page.getByTestId('fit-Hirschberg')).toContainText('O(n)', { timeout: 60_000 });
+  await expect(page.getByTestId('fit-Full table')).toContainText('O(n²)');
+  await expect(page.getByTestId('fit-Two rows (length only)')).toContainText('O(n)');
+  await page.getByLabel('Scaling metric').selectOption('ops');
+  await expect(page.getByTestId('fit-Hirschberg')).toContainText('O(n²)');
+});

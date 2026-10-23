@@ -7,7 +7,7 @@ import { enumParam, intParam } from './url-state';
 
 export const FIB_ALGOS = ['naive', 'memo', 'iterative'] as const;
 export type FibAlgo = (typeof FIB_ALGOS)[number];
-export const TABS = ['fib', 'cycle'] as const;
+export const TABS = ['fib', 'cycle', 'lcs'] as const;
 export type Tab = (typeof TABS)[number];
 export const Y_METRICS = ['ops', 'mem'] as const;
 export type YMetric = (typeof Y_METRICS)[number];

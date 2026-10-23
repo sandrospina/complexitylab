@@ -4,6 +4,11 @@ import { cycleHash } from '../algorithms/cycle/hash';
 import { CYCLE_KINDS, makeCycleInput } from '../algorithms/cycle/input';
 import type { CycleInput, CycleKind, CycleResult } from '../algorithms/cycle/input';
 import { FIB_INPUT_KINDS, makeFibInput } from '../algorithms/fib/input';
+import { lcsHirschberg } from '../algorithms/lcs/hirschberg';
+import { LCS_KINDS, makeLcsInput } from '../algorithms/lcs/input';
+import type { LcsInput, LcsKind, LcsResult } from '../algorithms/lcs/input';
+import { lcsRows } from '../algorithms/lcs/rows';
+import { lcsTable } from '../algorithms/lcs/table';
 import type { FibInput, FibInputKind } from '../algorithms/fib/input';
 import { fibIterative } from '../algorithms/fib/iterative';
 import { fibMemo, fibNaive } from '../algorithms/fib/recursive';
@@ -276,6 +281,17 @@ const encoder = <I, K extends string>(
   });
 };
 
+/** n is the length of each of the two strings. */
+const lcs = (s: Omit<AlgorithmSpec<LcsInput, LcsResult, LcsKind>, 'inputKinds' | 'makeInput' | 'metric' | 'maxAnimN' | 'maxBenchN'>) =>
+  define<LcsInput, LcsResult, LcsKind>({
+    inputKinds: LCS_KINDS,
+    makeInput: makeLcsInput,
+    metric: 'total',
+    maxAnimN: 14,
+    maxBenchN: 2 ** 10,
+    ...s,
+  });
+
 /** n is the length of the sequence before it repeats: tail plus loop. */
 const cycle = (s: Omit<AlgorithmSpec<CycleInput, CycleResult, CycleKind>, 'inputKinds' | 'makeInput' | 'metric' | 'maxAnimN' | 'maxBenchN'>) =>
   define<CycleInput, CycleResult, CycleKind>({
@@ -409,6 +425,27 @@ export const MODULES: ModuleSpec[] = [
         generator: cycleFloyd,
         expected: { balanced: 'n', tail: 'n', loop: 'n', random: 'n' },
         expectedMem: { balanced: '1', tail: '1', loop: '1', random: '1' },
+      }),
+      lcs({
+        id: 'time-space/lcs-table',
+        name: 'Full table',
+        generator: lcsTable,
+        expected: { random: 'n2', similar: 'n2', different: 'n2' },
+        expectedMem: { random: 'n2', similar: 'n2', different: 'n2' },
+      }),
+      lcs({
+        id: 'time-space/lcs-rows',
+        name: 'Two rows (length only)',
+        generator: lcsRows,
+        expected: { random: 'n2', similar: 'n2', different: 'n2' },
+        expectedMem: { random: 'n', similar: 'n', different: 'n' },
+      }),
+      lcs({
+        id: 'time-space/lcs-hirschberg',
+        name: 'Hirschberg',
+        generator: lcsHirschberg,
+        expected: { random: 'n2', similar: 'n2', different: 'n2' },
+        expectedMem: { random: 'n', similar: 'n', different: 'n' },
       }),
     ],
   },
