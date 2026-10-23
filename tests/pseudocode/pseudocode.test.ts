@@ -40,13 +40,16 @@ import { checkSudoku } from '../../src/algorithms/sudoku/check';
 import { subsetSumBrute } from '../../src/algorithms/subset-sum/brute';
 import { makeSolveInput as makeSubsetInput, makeVerifyInput } from '../../src/algorithms/subset-sum/input';
 import { verifySubsetSum } from '../../src/algorithms/subset-sum/verify';
+import { makePreset as makeSatPreset, pigeonhole } from '../../src/algorithms/sat/cnf';
+import { dpll } from '../../src/algorithms/sat/dpll';
+import { truthTable } from '../../src/algorithms/sat/truth-table';
 import { mulberry32 } from '../../src/engine/rng';
 import { runCount } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
 import { PSEUDOCODE } from '../../src/pseudocode';
 import { MODULES } from '../../src/modules/registry';
 
-const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp', 'verify'];
+const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp', 'verify', 'sat'];
 const lines = <I,>(algo: Algorithm<I, unknown>, input: I) => runCount(algo, input).counters.lines;
 const sorted = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 const sortIn = (arr: number[]) => ({ arr, seed: 1 });
@@ -284,5 +287,19 @@ describe('measured line counts match the formulas', () => {
       const s = lines(subsetSumBrute, makeSubsetInput(n, 'none', mulberry32(n)));
       expect([s[2], s[3], s[4], s[5], s[6]]).toEqual([2 ** n, 2 ** n - 1, 2 ** n - 1, 2 ** n - 1, 1]);
     }
+  });
+
+  it('SAT: the truth table tries all 2ⁿ rows of an unsatisfiable formula; DPLL’s lines count its search', () => {
+    const opts = { heuristic: 'first' as const, propagate: true, pure: false };
+    const core = makeSatPreset('core', mulberry32(1));
+    const tt = runCount(truthTable, { cnf: core, ...opts }).counters;
+    expect([tt.lines[1], tt.lines[2], tt.lines[3] ?? 0, tt.lines[4]]).toEqual([8, tt.ops.clauseCheck, 0, 1]);
+    // PHP(3, 2): x1 = 1 forces five assignments and a conflict; its flip forces five more and another.
+    const php = runCount(dpll, { cnf: pigeonhole(3), ...opts }).counters;
+    expect([php.lines[3], php.lines[5], php.lines[7], php.lines[9], php.lines[6] ?? 0]).toEqual([2, 1, 1, 10, 0]);
+    expect((php.lines[5] ?? 0) + (php.lines[7] ?? 0)).toBe(php.ops.decide);
+    expect(php.lines[8]).toBe(php.ops.clauseCheck);
+    const ex = runCount(dpll, { cnf: makeSatPreset('example', mulberry32(1)), ...opts }).counters;
+    expect([ex.lines[6], ex.lines[3], (ex.lines[5] ?? 0) + (ex.lines[7] ?? 0)]).toEqual([1, 1, 4]);
   });
 });

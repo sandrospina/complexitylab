@@ -35,7 +35,7 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
       let changed = false;
       let done = true;
       for (let c = 0; c < clauses.length; c++) {
-        yield ins.clauseCheck<SatSnapshot>({ indices: [c], snapshot: { level: level() } });
+        yield ins.clauseCheck<SatSnapshot>({ indices: [c], snapshot: { level: level() }, line: 8 });
         const status = clauseStatus(clauses[c]!, a);
         if (status === 'falsified') return { conflict: c, done: false };
         if (status !== 'satisfied') done = false;
@@ -43,7 +43,7 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
           const lit = clauses[c]!.find((l) => litValue(a, l) === 0)!;
           a[Math.abs(lit)] = Math.sign(lit);
           trail.push(lit);
-          yield ins.propagate<SatSnapshot>({ indices: [Math.abs(lit)], value: Math.sign(lit), label: `unit: clause ${c + 1}`, snapshot: { level: level() } });
+          yield ins.propagate<SatSnapshot>({ indices: [Math.abs(lit)], value: Math.sign(lit), label: `unit: clause ${c + 1}`, snapshot: { level: level() }, line: 9 });
           changed = true;
         }
       }
@@ -52,7 +52,7 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
         const seen = Array<number>(n + 1).fill(0); // bit 1: positive, bit 2: negative
         for (let c = 0; c < clauses.length; c++) {
           if (clauseStatus(clauses[c]!, a) === 'satisfied') continue;
-          yield ins.clauseCheck<SatSnapshot>({ indices: [c], label: 'pure scan', snapshot: { level: level() } });
+          yield ins.clauseCheck<SatSnapshot>({ indices: [c], label: 'pure scan', snapshot: { level: level() }, line: 10 });
           for (const l of clauses[c]!) if (litValue(a, l) === 0) seen[Math.abs(l)]! |= l > 0 ? 1 : 2;
         }
         for (let v = 1; v <= n; v++) {
@@ -60,7 +60,7 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
           const lit = seen[v] === 1 ? v : -v;
           a[v] = Math.sign(lit);
           trail.push(lit);
-          yield ins.propagate<SatSnapshot>({ indices: [v], value: Math.sign(lit), label: 'pure literal', snapshot: { level: level() } });
+          yield ins.propagate<SatSnapshot>({ indices: [v], value: Math.sign(lit), label: 'pure literal', snapshot: { level: level() }, line: 10 });
           changed = true;
         }
       }
@@ -80,7 +80,7 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
     const open: [number, number[]][] = [];
     for (let c = 0; c < clauses.length; c++) {
       if (clauseStatus(clauses[c]!, a) === 'satisfied') continue;
-      yield ins.clauseCheck<SatSnapshot>({ indices: [c], label: heuristic, snapshot: { level: level() } });
+      yield ins.clauseCheck<SatSnapshot>({ indices: [c], label: heuristic, snapshot: { level: level() }, line: 11 });
       const free = clauses[c]!.filter((l) => litValue(a, l) === 0);
       open.push([free.length, free]);
       minSize = Math.min(minSize, free.length);
@@ -103,30 +103,33 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
     return best;
   }
 
-  function* assignDecision(lit: number) {
+  /** A decision: line 7 for a new one, line 5 for flipping one after a conflict. */
+  function* assignDecision(lit: number, line: number) {
     yield ins.pushFrame<SatSnapshot>({ label: `x${Math.abs(lit)}=${lit > 0 ? 1 : 0}`, snapshot: { level: level() } });
     a[Math.abs(lit)] = Math.sign(lit);
     trail.push(lit);
-    yield ins.decide<SatSnapshot>({ indices: [Math.abs(lit)], value: Math.sign(lit), snapshot: { level: level() } });
+    yield ins.decide<SatSnapshot>({ indices: [Math.abs(lit)], value: Math.sign(lit), snapshot: { level: level() }, line });
   }
 
+  ins.at(1);
   let { conflict, done } = yield* settle();
   let result: SatResult;
   search: for (;;) {
+    ins.at(2);
     while (conflict >= 0) {
-      yield ins.conflict<SatSnapshot>({ indices: [conflict], label: `clause ${conflict + 1} falsified`, snapshot: { level: level() } });
+      yield ins.conflict<SatSnapshot>({ indices: [conflict], label: `clause ${conflict + 1} falsified`, snapshot: { level: level() }, line: 3 });
       // Undo to the latest decision that still has an untried value.
       for (;;) {
         const d = decisions.at(-1);
         if (!d) break search;
         const undone = trail.splice(d.trailStart).map(Math.abs);
         for (const v of undone) a[v] = 0;
-        yield ins.mark<SatSnapshot>('backtrack', { indices: undone, snapshot: { level: level() } });
+        yield ins.mark<SatSnapshot>('backtrack', { indices: undone, snapshot: { level: level() }, line: 4 });
         yield ins.popFrame();
         if (!d.flipped) {
           d.flipped = true;
           d.lit = -d.lit;
-          yield* assignDecision(d.lit);
+          yield* assignDecision(d.lit, 5);
           break;
         }
         decisions.pop();
@@ -134,17 +137,19 @@ export const dpll: Algorithm<SatInput, SatResult> = function* ({ cnf, heuristic,
       ({ conflict, done } = yield* settle());
     }
     if (done) {
+      ins.at(6);
       result = Array.from({ length: n }, (_, i) => (a[i + 1]! < 0 ? -(i + 1) : i + 1));
       break;
     }
     const lit = yield* choose();
     if (lit === 0) {
       // Everything is assigned without a conflict, so every clause is satisfied.
+      ins.at(6);
       result = Array.from({ length: n }, (_, i) => (a[i + 1]! < 0 ? -(i + 1) : i + 1));
       break;
     }
     decisions.push({ trailStart: trail.length, lit, flipped: false });
-    yield* assignDecision(lit);
+    yield* assignDecision(lit, 7);
     ({ conflict, done } = yield* settle());
   }
   for (let k = 0; k < decisions.length; k++) yield ins.popFrame();

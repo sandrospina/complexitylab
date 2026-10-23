@@ -3,6 +3,7 @@ import { BUBBLE_SORT, INSERTION_SORT, MERGE_SORT, QUICKSORT, TIMSORT } from './s
 import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
 import { HELD_KARP, KNAPSACK_BRUTE, KNAPSACK_DP, TSP_BRUTE, TSP_HEURISTIC } from './knapsack-tsp';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
+import { DPLL, TRUTH_TABLE } from './sat';
 import type { Pseudocode } from './types';
 import { SUBSET_SUM_SEARCH, SUDOKU_CHECK, SUDOKU_SOLVE, VERIFY_SUBSET_SUM } from './verify';
 
@@ -40,6 +41,11 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'verify/sudoku-solve': SUDOKU_SOLVE,
   'verify/subset-check': VERIFY_SUBSET_SUM,
   'verify/subset-solve': SUBSET_SUM_SEARCH,
+  'sat/truth-table': TRUTH_TABLE,
+  'sat/backtracking': DPLL,
+  'sat/dpll-first': DPLL,
+  'sat/dpll-moms': DPLL,
+  'sat/dpll-jw': DPLL,
 };
 
 export const pseudocodeFor = (algoId: string): Pseudocode | undefined => PSEUDOCODE[algoId];

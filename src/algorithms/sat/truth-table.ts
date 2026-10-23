@@ -16,18 +16,22 @@ export const truthTable: Algorithm<SatInput, SatResult> = function* ({ cnf }, in
   let model: SatResult;
   for (let row = 0; row < 2 ** n && !model; row++) {
     for (let v = 1; v <= n; v++) a[v] = Math.floor(row / 2 ** (v - 1)) % 2 ? 1 : -1;
-    yield ins.write<SatSnapshot>({ label: `row ${row}`, snapshot: { row } });
+    yield ins.write<SatSnapshot>({ label: `row ${row}`, snapshot: { row }, line: 1 });
     let ok = true;
     for (let c = 0; c < clauses.length; c++) {
-      yield ins.clauseCheck<SatSnapshot>({ indices: [c], snapshot: { row } });
+      yield ins.clauseCheck<SatSnapshot>({ indices: [c], snapshot: { row }, line: 2 });
       if (clauseStatus(clauses[c]!, a) === 'falsified') {
         yield ins.mark<SatSnapshot>('falsified', { indices: [c], snapshot: { row } });
         ok = false;
         break;
       }
     }
-    if (ok) model = Array.from({ length: n }, (_, i) => a[i + 1]! * (i + 1));
+    if (ok) {
+      ins.at(3);
+      model = Array.from({ length: n }, (_, i) => a[i + 1]! * (i + 1));
+    }
   }
+  if (!model) ins.at(4);
   yield ins.free<SatSnapshot>(n + 1, { label: 'assignment' });
   return model;
 };

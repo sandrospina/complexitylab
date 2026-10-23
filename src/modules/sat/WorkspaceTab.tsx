@@ -206,8 +206,11 @@ export function WorkspaceTab() {
           step={s}
           metric="total"
           metricLabel="ops"
+          n={cnf.n}
           entries={traces.map((t) => ({
             ...t,
+            // Every DPLL configuration shares one pseudocode.
+            algoId: t.key === 'tt' ? 'sat/truth-table' : 'sat/dpll-first',
             render: (f) =>
               t.key === 'tt' ? (
                 <TruthTableDrawing input={input} trace={t.trace} frame={f} />
