@@ -10,7 +10,7 @@ import type { TspInput, TspResult, TspSnapshot } from './input';
 export const tspBrute: Algorithm<TspInput, TspResult> = function* ({ pts }, ins: Instrument) {
   const n = pts.length;
   const tour = Array.from({ length: n }, (_, i) => i);
-  yield ins.alloc<TspSnapshot>(2 * n, { label: 'tour, best tour' });
+  yield ins.alloc<TspSnapshot>(2 * n, { label: 'tour, best tour', line: 1 });
   let best = Infinity;
   let bestTour = tour.slice();
 
@@ -18,9 +18,9 @@ export const tspBrute: Algorithm<TspInput, TspResult> = function* ({ pts }, ins:
     let cost = 0;
     for (let k = 0; k < n; k++) {
       cost += dist(pts, tour[k]!, tour[(k + 1) % n]!);
-      yield ins.read<TspSnapshot>({ label: 'edge length' });
+      yield ins.read<TspSnapshot>({ label: 'edge length', line: 3 });
     }
-    yield ins.compare<TspSnapshot>({ label: 'shorter?' });
+    yield ins.compare<TspSnapshot>({ label: 'shorter?', line: 4 });
     if (cost < best) {
       best = cost;
       bestTour = tour.slice();
@@ -31,13 +31,15 @@ export const tspBrute: Algorithm<TspInput, TspResult> = function* ({ pts }, ins:
   // Heap's algorithm over positions 1..n−1 (city 0 stays first).
   const m = n - 1;
   const c = Array<number>(Math.max(m, 0)).fill(0);
+  // The first ordering is the starting one; each later one costs one swap (line 2).
+  ins.at(2);
   yield* visit();
   let i = 1;
   while (i < m) {
     if (c[i]! < i) {
       const j = i % 2 === 0 ? 0 : c[i]!;
       [tour[j + 1], tour[i + 1]] = [tour[i + 1]!, tour[j + 1]!];
-      yield ins.swap<TspSnapshot>({ indices: [j + 1, i + 1] });
+      yield ins.swap<TspSnapshot>({ indices: [j + 1, i + 1], line: 2 });
       yield* visit();
       c[i]!++;
       i = 1;
@@ -46,6 +48,7 @@ export const tspBrute: Algorithm<TspInput, TspResult> = function* ({ pts }, ins:
       i++;
     }
   }
+  ins.at(5);
   yield ins.free<TspSnapshot>(2 * n, { label: 'tour, best tour' });
   return { cost: n < 2 ? 0 : best, tour: bestTour };
 };

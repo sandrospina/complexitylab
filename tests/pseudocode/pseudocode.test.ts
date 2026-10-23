@@ -28,13 +28,20 @@ import { dijkstraHeap } from '../../src/algorithms/graph/dijkstra-heap';
 import { edgesOf } from '../../src/algorithms/graph/graph';
 import { makeDijkstraInput } from '../../src/algorithms/graph/input';
 import { makePreset } from '../../src/algorithms/graph/presets';
+import { knapsackBrute } from '../../src/algorithms/knapsack/brute';
+import { knapsackDp } from '../../src/algorithms/knapsack/dp';
+import { scaledInstance } from '../../src/algorithms/knapsack/input';
+import { tspBrute } from '../../src/algorithms/tsp/brute';
+import { tspHeldKarp } from '../../src/algorithms/tsp/held-karp';
+import { tspHeuristic } from '../../src/algorithms/tsp/heuristic';
+import { makeTspInput } from '../../src/algorithms/tsp/input';
 import { mulberry32 } from '../../src/engine/rng';
 import { runCount } from '../../src/engine/runner';
 import type { Algorithm } from '../../src/engine/runner';
 import { PSEUDOCODE } from '../../src/pseudocode';
 import { MODULES } from '../../src/modules/registry';
 
-const PILOT = ['search', 'sorting', 'time-space', 'graphs'];
+const PILOT = ['search', 'sorting', 'time-space', 'graphs', 'knapsack', 'tsp'];
 const lines = <I,>(algo: Algorithm<I, unknown>, input: I) => runCount(algo, input).counters.lines;
 const sorted = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 const sortIn = (arr: number[]) => ({ arr, seed: 1 });
@@ -228,5 +235,33 @@ describe('measured line counts match the formulas', () => {
     // These weights make every edge improve a distance once: one insert per edge, plus the source.
     expect(h[7]).toBe(E);
     expect(h[2]).toBe(E + 2);
+  });
+
+  it('knapsack: brute force tries 2ⁿ − 1 subsets; the DP fills n(W + 1) cells', () => {
+    for (const [n, bits] of [[1, 3], [4, 5], [8, 6]] as const) {
+      const input = scaledInstance(n, bits, 2);
+      const W = input.W;
+      const b = lines(knapsackBrute, input);
+      expect([b[2], b[3], b[4], b[5]]).toEqual([2 ** n, 2 ** n - 1, 2 ** n - 1, 2 ** n - 1]);
+      const d = lines(knapsackDp, input);
+      expect([d[2], d[3], d[4], d[5], d[6], d[7]]).toEqual([n + 1, n * (W + 2), n * (W + 1), n * (W + 1), n * (W + 1), n]);
+    }
+  });
+
+  it('TSP: brute force costs n! edge lengths; Held–Karp extends (n − 1)(n − 2)2ⁿ⁻³ paths; nearest neighbour n(n − 1)/2', () => {
+    const fact = (k: number): number => (k <= 1 ? 1 : k * fact(k - 1));
+    for (const n of [3, 5, 7]) {
+      const input = makeTspInput(n, 'random', mulberry32(n));
+      const b = lines(tspBrute, input);
+      expect([b[2], b[3], b[4]]).toEqual([fact(n - 1), fact(n), fact(n - 1)]);
+      const h = lines(tspHeldKarp, input);
+      expect([h[1], h[2], h[3], h[4], h[5]]).toEqual([n - 1, 2 ** (n - 1) - 1, (n - 1) * 2 ** (n - 2), (n - 1) * (n - 2) * 2 ** (n - 3), n - 1]);
+    }
+    for (const n of [6, 30]) {
+      const c = lines(tspHeuristic, makeTspInput(n, 'random', mulberry32(n)));
+      expect([c[2], c[3]]).toEqual([n, (n * (n - 1)) / 2]);
+      expect(c[5]).toBe(c[4]! * ((n * (n - 3)) / 2));
+      expect(c[7]).toBe(c[4]);
+    }
   });
 });

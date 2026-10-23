@@ -16,13 +16,15 @@ export const tspHeuristic: Algorithm<TspInput, TspResult> = function* ({ pts }, 
   yield ins.alloc<TspSnapshot>(2 * n, { label: 'tour, visited' });
   tour[0] = 0;
   visited[0] = true;
-  yield ins.write<TspSnapshot>({ indices: [0], value: 0, label: 'start at city 0' });
-  for (let pos = 1; pos < n; pos++) {
+  yield ins.write<TspSnapshot>({ indices: [0], value: 0, label: 'start at city 0', line: 1 });
+  for (let pos = 1; ; pos++) {
+    ins.at(2);
+    if (pos >= n) break;
     const from = tour[pos - 1]!;
     let next = -1;
     for (let c = 0; c < n; c++) {
       if (visited[c]) continue;
-      yield ins.compare<TspSnapshot>({ label: `city ${c} nearer?` });
+      yield ins.compare<TspSnapshot>({ label: `city ${c} nearer?`, line: 3 });
       if (next === -1 || dist(pts, from, c) < dist(pts, from, next)) next = c;
     }
     tour[pos] = next;
@@ -33,22 +35,24 @@ export const tspHeuristic: Algorithm<TspInput, TspResult> = function* ({ pts }, 
 
   let improved = n >= 4;
   for (let pass = 1; improved; pass++) {
+    ins.at(4);
     improved = false;
     for (let i = 0; i < n - 2; i++) {
       for (let j = i + 2; j < n - (i === 0 ? 1 : 0); j++) {
         const [a, b, c, d] = [tour[i]!, tour[i + 1]!, tour[j]!, tour[(j + 1) % n]!];
-        yield ins.compare<TspSnapshot>({ label: 'swap two edges?' });
+        yield ins.compare<TspSnapshot>({ label: 'swap two edges?', line: 5 });
         if (dist(pts, a, c) + dist(pts, b, d) < dist(pts, a, b) + dist(pts, c, d) - 1e-12) {
           for (let x = i + 1, y = j; x < y; x++, y--) {
             [tour[x], tour[y]] = [tour[y]!, tour[x]!];
-            yield ins.swap<TspSnapshot>({ indices: [x, y], label: '2-opt reversal' });
+            yield ins.swap<TspSnapshot>({ indices: [x, y], label: '2-opt reversal', line: 6 });
           }
           improved = true;
         }
       }
     }
-    yield ins.mark<TspSnapshot>(`2-opt pass ${pass} done`, { snapshot: { best: tourCost(pts, tour) } });
+    yield ins.mark<TspSnapshot>(`2-opt pass ${pass} done`, { snapshot: { best: tourCost(pts, tour) }, line: 7 });
   }
+  ins.at(8);
   yield ins.free<TspSnapshot>(2 * n, { label: 'tour, visited' });
   return { cost: tourCost(pts, tour), tour };
 };

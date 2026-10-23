@@ -194,8 +194,10 @@ export default function TspModule() {
               step={s}
               metric="total"
               metricLabel="ops"
+              n={n}
               entries={traces.map(({ a, trace }) => ({
                 key: a,
+                algoId: tspAlgoId(a),
                 name: META[a].name,
                 color: META[a].color,
                 trace,

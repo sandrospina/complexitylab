@@ -1,6 +1,7 @@
 import { BINARY_SEARCH, INTERPOLATION_SEARCH, JUMP_SEARCH, LINEAR_SEARCH, RECURSIVE_BINARY_SEARCH } from './search';
 import { BUBBLE_SORT, INSERTION_SORT, MERGE_SORT, QUICKSORT, TIMSORT } from './sorting';
 import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
+import { HELD_KARP, KNAPSACK_BRUTE, KNAPSACK_DP, TSP_BRUTE, TSP_HEURISTIC } from './knapsack-tsp';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
 import type { Pseudocode } from './types';
 
@@ -29,6 +30,11 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'graphs/dfs': DFS,
   'graphs/dijkstra-array': DIJKSTRA_ARRAY,
   'graphs/dijkstra-heap': DIJKSTRA_HEAP,
+  'knapsack/brute': KNAPSACK_BRUTE,
+  'knapsack/dp': KNAPSACK_DP,
+  'tsp/brute': TSP_BRUTE,
+  'tsp/held-karp': HELD_KARP,
+  'tsp/heuristic': TSP_HEURISTIC,
 };
 
 export const pseudocodeFor = (algoId: string): Pseudocode | undefined => PSEUDOCODE[algoId];

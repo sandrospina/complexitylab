@@ -224,8 +224,10 @@ export default function KnapsackModule() {
           step={s}
           metric="total"
           metricLabel="ops"
+          n={n}
           entries={traces.map(({ a, trace }) => ({
             key: a,
+            algoId: knapsackAlgoId(a),
             name: META[a].name,
             color: META[a].color,
             trace,

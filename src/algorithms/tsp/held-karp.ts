@@ -19,18 +19,19 @@ export const tspHeldKarp: Algorithm<TspInput, TspResult> = function* ({ pts }, i
   // Bit j stands for city j + 1.
   for (let j = 0; j < m; j++) {
     best[(1 << j) * m + j] = dist(pts, 0, j + 1);
-    yield ins.write<TspSnapshot>({ label: 'path 0 → one city', snapshot: { mask: 1 << j, last: j + 1 } });
+    yield ins.write<TspSnapshot>({ label: 'path 0 → one city', snapshot: { mask: 1 << j, last: j + 1 }, line: 1 });
   }
   for (let mask = 1; mask < 1 << m; mask++) {
+    ins.at(2);
     for (let j = 0; j < m; j++) {
       if (!(mask & (1 << j))) continue;
       const here = best[mask * m + j]!;
-      yield ins.read<TspSnapshot>({ label: 'path so far', snapshot: { mask, last: j + 1 } });
+      yield ins.read<TspSnapshot>({ label: 'path so far', snapshot: { mask, last: j + 1 }, line: 3 });
       for (let k = 0; k < m; k++) {
         if (mask & (1 << k)) continue;
         const next = (mask | (1 << k)) * m + k;
         const d = here + dist(pts, j + 1, k + 1);
-        yield ins.compare<TspSnapshot>({ label: `extend to ${k + 1}?`, snapshot: { mask, last: j + 1 } });
+        yield ins.compare<TspSnapshot>({ label: `extend to ${k + 1}?`, snapshot: { mask, last: j + 1 }, line: 4 });
         if (d < best[next]!) {
           best[next] = d;
           from[next] = j;
@@ -44,10 +45,11 @@ export const tspHeldKarp: Algorithm<TspInput, TspResult> = function* ({ pts }, i
   let last = 0;
   for (let j = 0; j < m; j++) {
     const d = best[full * m + j]! + dist(pts, j + 1, 0);
-    yield ins.compare<TspSnapshot>({ label: 'close the tour', snapshot: { mask: full, last: j + 1 } });
+    yield ins.compare<TspSnapshot>({ label: 'close the tour', snapshot: { mask: full, last: j + 1 }, line: 5 });
     if (d < cost) [cost, last] = [d, j];
   }
   // Follow the predecessors back from the last city.
+  ins.at(6);
   const rev: number[] = [];
   for (let mask = full, j = last; j >= 0; ) {
     rev.push(j + 1);

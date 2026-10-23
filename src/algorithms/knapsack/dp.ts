@@ -11,19 +11,23 @@ export const knapsackDp: Algorithm<KnapsackInput, KnapsackResult> = function* ({
   const n = w.length;
   const cols = W + 1;
   const best = new Float64Array((n + 1) * cols);
-  yield ins.alloc<KnapsackSnapshot>((n + 1) * cols, { label: 'table' });
-  for (let i = 1; i <= n; i++) {
+  yield ins.alloc<KnapsackSnapshot>((n + 1) * cols, { label: 'table', line: 1 });
+  for (let i = 1; ; i++) {
+    ins.at(2);
+    if (i > n) break;
     const wi = w[i - 1]!;
     const vi = v[i - 1]!;
-    for (let c = 0; c <= W; c++) {
+    for (let c = 0; ; c++) {
+      ins.at(3);
+      if (c > W) break;
       const skip = best[(i - 1) * cols + c]!;
-      yield ins.read<KnapsackSnapshot>({ label: 'skip item', snapshot: { i, c } });
+      yield ins.read<KnapsackSnapshot>({ label: 'skip item', snapshot: { i, c }, line: 4 });
       let take = -1;
       if (wi <= c) {
         take = best[(i - 1) * cols + c - wi]! + vi;
-        yield ins.read<KnapsackSnapshot>({ label: 'take item', snapshot: { i, c } });
-      }
-      yield ins.compare<KnapsackSnapshot>({ label: 'take or skip?', snapshot: { i, c } });
+        yield ins.read<KnapsackSnapshot>({ label: 'take item', snapshot: { i, c }, line: 5 });
+      } else ins.at(5);
+      yield ins.compare<KnapsackSnapshot>({ label: 'take or skip?', snapshot: { i, c }, line: 6 });
       best[i * cols + c] = Math.max(skip, take);
       yield ins.write<KnapsackSnapshot>({ indices: [i, c], value: best[i * cols + c], snapshot: { i, c } });
     }
@@ -31,12 +35,13 @@ export const knapsackDp: Algorithm<KnapsackInput, KnapsackResult> = function* ({
   // Walk back up the table: an item was taken wherever the value changed.
   const items: number[] = [];
   for (let i = n, c = W; i > 0; i--) {
-    yield ins.compare<KnapsackSnapshot>({ label: 'taken?', snapshot: { i, c } });
+    yield ins.compare<KnapsackSnapshot>({ label: 'taken?', snapshot: { i, c }, line: 7 });
     if (best[i * cols + c] !== best[(i - 1) * cols + c]) {
       items.push(i - 1);
       c -= w[i - 1]!;
     }
   }
+  ins.at(8);
   yield ins.free<KnapsackSnapshot>((n + 1) * cols, { label: 'table' });
   return { best: best[n * cols + W]!, items: items.reverse() };
 };
