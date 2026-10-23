@@ -18,6 +18,7 @@ export function adversaryScore(algo: SortAlgo, arr: number[]): number {
 const NOTES: Record<SortAlgo, string> = {
   bubble: 'Large values race to the right, a whole pass at a time. Small values crawl left one place per pass. Where should the smallest value start?',
   insertion: 'Every element has to travel past all the smaller ones on its left. Which order makes every trip as long as possible?',
+  tim: 'TimSort looks for runs that are already sorted (or strictly descending) and merges them, galloping when one side keeps winning. Sorted input is one run. What gives it the least to work with?',
   merge: 'Merge sort always splits in half, so no input can push it past n log₂ n − n + 1 compares. Try anyway.',
   'quick-naive': 'The last element is always the pivot. What happens when the pivot is the largest value in its range, every time?',
   'quick-random':

@@ -8,13 +8,13 @@ import { mulberry32 } from '../engine/rng';
 import { benchSizes, findAlgorithm } from '../modules/registry';
 import { enumParam, intParam } from './url-state';
 
-export const SORT_ALGOS = ['bubble', 'insertion', 'merge', 'quick-naive', 'quick-random'] as const;
+export const SORT_ALGOS = ['bubble', 'insertion', 'merge', 'tim', 'quick-naive', 'quick-random'] as const;
 export type SortAlgo = (typeof SORT_ALGOS)[number];
 export const TREE_ALGOS = ['merge', 'quick-naive', 'quick-random', 'binary'] as const;
 export type TreeAlgo = (typeof TREE_ALGOS)[number];
 export const TABS = ['explore', 'adversary', 'tree'] as const;
 export type Tab = (typeof TABS)[number];
-const PRESETS = ['random', 'sorted', 'reversed', 'fewUnique'] as const;
+const PRESETS = ['random', 'sorted', 'reversed', 'fewUnique', 'runs'] as const;
 
 export const MAX_SORT_N = 48;
 export const ADV_MIN_N = 8;

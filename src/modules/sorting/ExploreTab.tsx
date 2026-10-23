@@ -67,6 +67,12 @@ export function ExploreTab() {
         <span className="muted" style={{ fontSize: 13 }}>
           Every selected sort runs on the same input: they race on the timeline and share the scaling plot.
         </span>
+        {algos.includes('tim') && n < 64 && (
+          <span className="muted" style={{ fontSize: 13 }} data-testid="tim-note">
+            Below 64 elements TimSort&apos;s minimum run length is the whole array, so here it is binary insertion sort,
+            just as in CPython. Finding runs, merging and galloping start at 64; the scaling experiment measures them.
+          </span>
+        )}
       </section>
 
       <div className="grid-2">

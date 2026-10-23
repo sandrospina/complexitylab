@@ -66,6 +66,7 @@ test('race scrubs both sorts in lock-step', async ({ page }) => {
 });
 
 test('pick any set of sorts: they race together and share one scaling plot', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/?m=sorting&tab=explore&algos=insertion&n=16&preset=reversed');
   const chip = (name: string) => page.getByRole('group', { name: 'Sorts to compare' }).getByRole('button', { name });
   await expect(chip('Insertion sort')).toHaveAttribute('aria-pressed', 'true');
@@ -81,10 +82,23 @@ test('pick any set of sorts: they race together and share one scaling plot', asy
     ['Bubble sort', 'O(n²)'],
     ['Insertion sort', 'O(n²)'],
     ['Merge sort', 'O(n log n)'],
+    // Reversed input is one strictly descending run: TimSort reverses it and is done.
+    ['TimSort', 'O(n)'],
     ['Quicksort (last pivot)', 'O(n²)'],
     ['Quicksort (random pivot)', 'O(n log n)'],
   ] as const)
     await expect(page.getByTestId(`fit-${name}`)).toContainText(cls, { timeout: 60_000 });
+});
+
+test('TimSort finds the sorted runs: linear where merge sort is n log n', async ({ page }) => {
+  await page.goto('/?m=sorting&tab=explore&algos=merge,tim&n=48&preset=runs');
+  const slider = page.getByRole('slider', { name: 'Scrub timeline' });
+  await slider.fill((await slider.getAttribute('max'))!);
+  const score = page.getByTestId('race-score');
+  await expect(score).toContainText('TimSort:');
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  await expect(page.getByTestId('fit-TimSort')).toContainText('O(n)', { timeout: 60_000 });
+  await expect(page.getByTestId('fit-Merge sort')).toContainText('O(n log n)');
 });
 
 test('the last selected sort cannot be removed, and old algo/vs links still work', async ({ page }) => {

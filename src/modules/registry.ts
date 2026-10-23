@@ -20,6 +20,7 @@ import { makeSortInput, SORT_INPUT_KINDS } from '../algorithms/sort/input';
 import type { SortInput, SortInputKind } from '../algorithms/sort/input';
 import { bubbleSort } from '../algorithms/sort/bubble';
 import { insertionSort } from '../algorithms/sort/insertion';
+import { timSort } from '../algorithms/sort/tim';
 import { mergeSort } from '../algorithms/sort/merge';
 import { quickNaive, quickRandom } from '../algorithms/sort/quick';
 import { knapsackBrute } from '../algorithms/knapsack/brute';
@@ -306,28 +307,38 @@ export const MODULES: ModuleSpec[] = [
         generator: bubbleSort,
         maxBenchN: 2 ** 12,
         // The early exit makes sorted input one pass; few-unique values still need many passes.
-        expected: { random: 'n2', sorted: 'n', reversed: 'n2', fewUnique: 'n2' },
+        expected: { random: 'n2', sorted: 'n', reversed: 'n2', fewUnique: 'n2', runs: 'n2' },
       }),
       sort({
         id: 'sorting/insertion',
         name: 'Insertion sort',
         generator: insertionSort,
         maxBenchN: 2 ** 12,
-        expected: { random: 'n2', sorted: 'n', reversed: 'n2', fewUnique: 'n2' },
+        expected: { random: 'n2', sorted: 'n', reversed: 'n2', fewUnique: 'n2', runs: 'n2' },
+      }),
+      sort({
+        id: 'sorting/tim',
+        name: 'TimSort',
+        generator: timSort,
+        maxBenchN: 2 ** 16,
+        // Sorted and reversed are one run; 8 runs cost n·(1 + log₂ 8). With 4 distinct values,
+        // runs absorb equal neighbours and galloping copies equal blocks whole: linear too.
+        expected: { random: 'nlogn', sorted: 'n', reversed: 'n', fewUnique: 'n', runs: 'n' },
       }),
       sort({
         id: 'sorting/merge',
         name: 'Merge sort',
         generator: mergeSort,
         maxBenchN: 2 ** 16,
-        expected: { random: 'nlogn', sorted: 'nlogn', reversed: 'nlogn', fewUnique: 'nlogn' },
+        expected: { random: 'nlogn', sorted: 'nlogn', reversed: 'nlogn', fewUnique: 'nlogn', runs: 'nlogn' },
       }),
       sort({
         id: 'sorting/quick-naive',
         name: 'Quicksort (last pivot)',
         generator: quickNaive,
         maxBenchN: 2 ** 12,
-        expected: { random: 'nlogn', sorted: 'n2', reversed: 'n2', fewUnique: 'n2' },
+        // Each sorted run ends in its maximum, so the last pivot is lopsided inside runs too.
+        expected: { random: 'nlogn', sorted: 'n2', reversed: 'n2', fewUnique: 'n2', runs: 'n2' },
       }),
       sort({
         id: 'sorting/quick-random',
@@ -335,7 +346,7 @@ export const MODULES: ModuleSpec[] = [
         generator: quickRandom,
         maxBenchN: 2 ** 12,
         // Lomuto puts every copy of the pivot on one side, so duplicates defeat random pivots.
-        expected: { random: 'nlogn', sorted: 'nlogn', reversed: 'nlogn', fewUnique: 'n2' },
+        expected: { random: 'nlogn', sorted: 'nlogn', reversed: 'nlogn', fewUnique: 'n2', runs: 'nlogn' },
       }),
     ],
   },

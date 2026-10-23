@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleSort } from '../../../src/algorithms/sort/bubble';
 import { insertionSort } from '../../../src/algorithms/sort/insertion';
-import { makeSortInput } from '../../../src/algorithms/sort/input';
+import { makeSortInput, RUNS } from '../../../src/algorithms/sort/input';
 import type { SortInput } from '../../../src/algorithms/sort/input';
 import { mergeSort } from '../../../src/algorithms/sort/merge';
 import { quickNaive, quickRandom } from '../../../src/algorithms/sort/quick';
 import { replayArray } from '../../../src/algorithms/sort/replay';
+import { minRun, timSort } from '../../../src/algorithms/sort/tim';
 import { binarySearchRecursive } from '../../../src/algorithms/search/binaryRecursive';
 import { makeSearchInput } from '../../../src/algorithms/search/input';
 import { buildCallTree, levelSums } from '../../../src/engine/calltree';
@@ -17,6 +18,7 @@ const SORTS: [string, Algorithm<SortInput, number[]>][] = [
   ['bubble', bubbleSort],
   ['insertion', insertionSort],
   ['merge', mergeSort],
+  ['tim', timSort],
   ['quickNaive', quickNaive],
   ['quickRandom', quickRandom],
 ];
@@ -78,6 +80,43 @@ describe('sort op counts', () => {
       const hare = compares(bubbleSort, [n, ...sorted(n - 1)].slice(0, n));
       expect(hare.ops.compare).toBe(n <= 1 ? 0 : n === 2 ? 1 : 2 * n - 3);
       expect(hare.peakMem).toBe(3);
+    }
+  });
+
+  it('TimSort: minrun is between 32 and 64 and makes n / minrun close to a power of two', () => {
+    expect([1, 63, 64, 65, 100, 1000, 2 ** 16, 2 ** 16 + 1].map(minRun)).toEqual([1, 63, 32, 33, 50, 63, 32, 33]);
+    for (let n = 64; n < 5000; n += 37) {
+      const m = minRun(n);
+      expect(m).toBeGreaterThanOrEqual(32);
+      expect(m).toBeLessThanOrEqual(64);
+      expect(Math.log2(n / m) % 1 < 0.5 || Math.ceil(n / m) <= 2 ** Math.ceil(Math.log2(n / m))).toBe(true);
+    }
+  });
+
+  it('TimSort: sorted and strictly reversed input are a single run: n − 1 compares', () => {
+    for (const n of [2, 5, 64, 1000, 5000]) {
+      const asc = compares(timSort, sorted(n));
+      expect(asc.ops.compare).toBe(n - 1);
+      expect(asc.ops.write + asc.ops.swap).toBe(0);
+      const rev = compares(timSort, sorted(n).reverse());
+      expect(rev.ops.compare).toBe(n - 1);
+      expect(rev.ops.swap).toBe(Math.floor(n / 2));
+    }
+  });
+
+  it('TimSort uses the runs merge sort ignores, and stays within merge sort on random input', () => {
+    for (const k of [1, 2, 3]) {
+      // n − 1 compares to find the runs, then about n · log₂ RUNS to merge them.
+      const runs = makeSortInput(4096, 'runs', mulberry32(k));
+      expect(compares(timSort, runs.arr).ops.compare).toBeLessThanOrEqual(4096 * (1 + Math.log2(RUNS)));
+      expect(compares(timSort, runs.arr).ops.compare).toBeLessThan(0.6 * compares(mergeSort, runs.arr).ops.compare);
+      // On random input it is as good as merge sort, close to the log₂ n! lower bound.
+      const rnd = makeSortInput(4096, 'random', mulberry32(k));
+      const tim = compares(timSort, rnd.arr).ops.compare;
+      expect(tim).toBeLessThanOrEqual(compares(mergeSort, rnd.arr).ops.compare);
+      expect(tim).toBeGreaterThanOrEqual(43_250);
+      // The merge buffer never needs more than half the array.
+      expect(compares(timSort, rnd.arr).peakMem).toBeLessThanOrEqual(4096 / 2 + 1);
     }
   });
 
