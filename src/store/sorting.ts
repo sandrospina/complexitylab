@@ -8,7 +8,7 @@ import { mulberry32 } from '../engine/rng';
 import { benchSizes, findAlgorithm } from '../modules/registry';
 import { enumParam, intParam } from './url-state';
 
-export const SORT_ALGOS = ['insertion', 'merge', 'quick-naive', 'quick-random'] as const;
+export const SORT_ALGOS = ['bubble', 'insertion', 'merge', 'quick-naive', 'quick-random'] as const;
 export type SortAlgo = (typeof SORT_ALGOS)[number];
 export const TREE_ALGOS = ['merge', 'quick-naive', 'quick-random', 'binary'] as const;
 export type TreeAlgo = (typeof TREE_ALGOS)[number];

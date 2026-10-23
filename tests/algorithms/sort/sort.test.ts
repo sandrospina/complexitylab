@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { bubbleSort } from '../../../src/algorithms/sort/bubble';
 import { insertionSort } from '../../../src/algorithms/sort/insertion';
 import { makeSortInput } from '../../../src/algorithms/sort/input';
 import type { SortInput } from '../../../src/algorithms/sort/input';
@@ -13,6 +14,7 @@ import { runCount, runTrace } from '../../../src/engine/runner';
 import type { Algorithm } from '../../../src/engine/runner';
 
 const SORTS: [string, Algorithm<SortInput, number[]>][] = [
+  ['bubble', bubbleSort],
   ['insertion', insertionSort],
   ['merge', mergeSort],
   ['quickNaive', quickNaive],
@@ -57,6 +59,25 @@ describe('sort op counts', () => {
       expect(asc.ops.compare).toBe(Math.max(0, n - 1));
       expect(asc.ops.swap).toBe(0);
       expect(asc.peakMem).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('bubble sort: sorted is one pass; reversed, or just the smallest value last, is n(n-1)/2 compares', () => {
+    for (const n of ns) {
+      const asc = compares(bubbleSort, sorted(n));
+      expect(asc.ops.compare).toBe(Math.max(0, n - 1));
+      expect(asc.ops.swap).toBe(0);
+      const rev = compares(bubbleSort, sorted(n).reverse());
+      expect(rev.ops.compare).toBe((n * (n - 1)) / 2);
+      expect(rev.ops.swap).toBe((n * (n - 1)) / 2);
+      // [2, 3, …, n, 1]: the 1 moves one place per pass, so every pass is needed, but only n−1 swaps.
+      const turtle = compares(bubbleSort, [...sorted(n).slice(1), 1].slice(0, n));
+      expect(turtle.ops.compare).toBe((n * (n - 1)) / 2);
+      expect(turtle.ops.swap).toBe(Math.max(0, n - 1));
+      // [n, 1, 2, …]: the n bubbles to the end in one pass, then a clean pass: about 2n.
+      const hare = compares(bubbleSort, [n, ...sorted(n - 1)].slice(0, n));
+      expect(hare.ops.compare).toBe(n <= 1 ? 0 : n === 2 ? 1 : 2 * n - 3);
+      expect(hare.peakMem).toBe(3);
     }
   });
 

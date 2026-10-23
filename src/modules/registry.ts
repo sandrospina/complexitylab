@@ -18,6 +18,7 @@ import type { SearchInput, SearchInputKind } from '../algorithms/search/input';
 import { linearSearch } from '../algorithms/search/linear';
 import { makeSortInput, SORT_INPUT_KINDS } from '../algorithms/sort/input';
 import type { SortInput, SortInputKind } from '../algorithms/sort/input';
+import { bubbleSort } from '../algorithms/sort/bubble';
 import { insertionSort } from '../algorithms/sort/insertion';
 import { mergeSort } from '../algorithms/sort/merge';
 import { quickNaive, quickRandom } from '../algorithms/sort/quick';
@@ -299,6 +300,14 @@ export const MODULES: ModuleSpec[] = [
     id: 'sorting',
     title: 'Sorting',
     algorithms: [
+      sort({
+        id: 'sorting/bubble',
+        name: 'Bubble sort',
+        generator: bubbleSort,
+        maxBenchN: 2 ** 12,
+        // The early exit makes sorted input one pass; few-unique values still need many passes.
+        expected: { random: 'n2', sorted: 'n', reversed: 'n2', fewUnique: 'n2' },
+      }),
       sort({
         id: 'sorting/insertion',
         name: 'Insertion sort',

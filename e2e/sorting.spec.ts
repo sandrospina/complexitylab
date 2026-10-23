@@ -11,6 +11,17 @@ test('gate: naive quicksort made quadratic in adversary mode', async ({ page }) 
   await expect(page).toHaveURL(/adv=1%2C2%2C3/);
 });
 
+test('bubble sort: one swap that puts the smallest value last forces every pass', async ({ page }) => {
+  // Sorted: one pass of n − 1 compares.
+  await page.goto('/?m=sorting&tab=adversary&aalgo=bubble&adv=1,2,3,4,5,6,7,8');
+  await expect(page.getByTestId('adv-score')).toHaveText('7');
+  // [8, 2, …, 7, 1]: the 1 crawls left one place per pass, so all 8·7/2 compares are needed.
+  await page.getByRole('button', { name: 'Position 1, value 1' }).click();
+  await page.getByRole('button', { name: 'Position 8, value 8' }).click();
+  await expect(page.getByTestId('adv-score')).toHaveText('28');
+  await expect(page.getByText('Quadratic reached!')).toBeVisible();
+});
+
 test('adversary swaps two values and the URL reproduces the input', async ({ page }) => {
   await page.goto('/?m=sorting&tab=adversary&aalgo=insertion&adv=1,2,3,4,5,6,7,8');
   await expect(page.getByTestId('adv-score')).toHaveText('7');
