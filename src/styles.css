@@ -293,3 +293,15 @@ table.breakdown th.breakdown-group { text-align: left; font-weight: 600; font-si
 .algo-chip[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); }
 .algo-chip[aria-pressed='false'] { color: var(--muted); }
 .algo-chip[aria-disabled='true'] { cursor: default; }
+.rho line { stroke: var(--muted); stroke-width: 1.5; }
+.rho .rho-arrowhead { fill: var(--muted); }
+.rho .rho-self { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.rho-node circle { fill: var(--surface); stroke: var(--text); stroke-width: 1.5; }
+.rho-node.entrance circle { stroke-width: 3; }
+.rho-node.seen circle { fill: var(--accent-soft); stroke: var(--accent); }
+.rho-node.at circle { fill: var(--warn); stroke: var(--warn); }
+.rho-node text { font: 11px ui-monospace, Menlo, monospace; fill: var(--text); pointer-events: none; }
+.rho .pointer rect { stroke: none; }
+.rho .pointer.tortoise rect { fill: var(--ok); }
+.rho .pointer.hare rect { fill: var(--bad); }
+.rho .pointer text { font: 700 11px ui-monospace, Menlo, monospace; fill: #fff; pointer-events: none; }

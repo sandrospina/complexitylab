@@ -1,4 +1,8 @@
 // Pure TypeScript: imported by the benchmark worker, so no React or DOM here.
+import { cycleFloyd } from '../algorithms/cycle/floyd';
+import { cycleHash } from '../algorithms/cycle/hash';
+import { CYCLE_KINDS, makeCycleInput } from '../algorithms/cycle/input';
+import type { CycleInput, CycleKind, CycleResult } from '../algorithms/cycle/input';
 import { FIB_INPUT_KINDS, makeFibInput } from '../algorithms/fib/input';
 import type { FibInput, FibInputKind } from '../algorithms/fib/input';
 import { fibIterative } from '../algorithms/fib/iterative';
@@ -272,6 +276,17 @@ const encoder = <I, K extends string>(
   });
 };
 
+/** n is the length of the sequence before it repeats: tail plus loop. */
+const cycle = (s: Omit<AlgorithmSpec<CycleInput, CycleResult, CycleKind>, 'inputKinds' | 'makeInput' | 'metric' | 'maxAnimN' | 'maxBenchN'>) =>
+  define<CycleInput, CycleResult, CycleKind>({
+    inputKinds: CYCLE_KINDS,
+    makeInput: makeCycleInput,
+    metric: 'total',
+    maxAnimN: 40,
+    maxBenchN: 2 ** 16,
+    ...s,
+  });
+
 export const MODULES: ModuleSpec[] = [
   {
     id: 'search',
@@ -380,6 +395,20 @@ export const MODULES: ModuleSpec[] = [
         maxBenchN: 40,
         expected: { n: 'n' },
         expectedMem: { n: '1' },
+      }),
+      cycle({
+        id: 'time-space/cycle-hash',
+        name: 'Hash set',
+        generator: cycleHash,
+        expected: { balanced: 'n', tail: 'n', loop: 'n', random: 'n' },
+        expectedMem: { balanced: 'n', tail: 'n', loop: 'n', random: 'n' },
+      }),
+      cycle({
+        id: 'time-space/cycle-floyd',
+        name: "Floyd's tortoise and hare",
+        generator: cycleFloyd,
+        expected: { balanced: 'n', tail: 'n', loop: 'n', random: 'n' },
+        expectedMem: { balanced: '1', tail: '1', loop: '1', random: '1' },
       }),
     ],
   },

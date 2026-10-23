@@ -7,6 +7,8 @@ import { enumParam, intParam } from './url-state';
 
 export const FIB_ALGOS = ['naive', 'memo', 'iterative'] as const;
 export type FibAlgo = (typeof FIB_ALGOS)[number];
+export const TABS = ['fib', 'cycle'] as const;
+export type Tab = (typeof TABS)[number];
 export const Y_METRICS = ['ops', 'mem'] as const;
 export type YMetric = (typeof Y_METRICS)[number];
 
@@ -15,6 +17,8 @@ export const fibAlgoId = (a: FibAlgo) => `time-space/${a}`;
 export const maxN = (a: FibAlgo) => findAlgorithm(fibAlgoId(a)).maxAnimN;
 
 interface TimeSpaceState {
+  tab: Tab;
+  setTab: (t: Tab) => void;
   algo: FibAlgo;
   n: number;
   step: number;
@@ -35,6 +39,8 @@ export const useTimeSpaceStore = create<TimeSpaceState>()((set) => {
   let cancel = () => {};
   const algo = enumParam('algo', FIB_ALGOS, 'naive');
   return {
+    tab: enumParam('tab', TABS, 'fib'),
+    setTab: (tab) => set({ tab }),
     algo,
     n: intParam('n', 8, 1, maxN(algo)),
     step: intParam('step', 0, 0, 1e6),

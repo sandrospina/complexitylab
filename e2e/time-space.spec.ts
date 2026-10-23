@@ -20,3 +20,22 @@ test('the scaling run fits φⁿ for naive recursion and n for memoisation', asy
   await page.getByLabel('Scaling metric').selectOption('mem');
   await expect(page.getByTestId('fit-Iterative')).toContainText('O(1)');
 });
+
+test('cycle detection: both find the loop; the hash set needs O(n) cells, Floyd O(1)', async ({ page }) => {
+  await page.goto('/?m=time-space&tab=cycle&cn=14&ck=balanced');
+  await expect(page.getByTestId('rho-shape')).toHaveText('tail μ = 7, loop λ = 7');
+  const slider = page.getByRole('slider', { name: 'Scrub timeline' });
+  await slider.fill((await slider.getAttribute('max'))!);
+  await expect(page.getByTestId('result-cycle-hash')).toHaveText('found μ = 7, λ = 7');
+  await expect(page.getByTestId('result-cycle-floyd')).toHaveText('found μ = 7, λ = 7');
+  const memory = page.getByRole('region', { name: 'Memory and operations' });
+  await expect(memory.locator('.mem-block', { hasText: 'Hash set' })).toContainText('peak 14');
+  await expect(memory.locator('.mem-block', { hasText: 'Floyd' })).toContainText('peak 4');
+
+  await page.getByRole('button', { name: 'Run scaling experiment' }).click();
+  await expect(page.getByTestId('fit-Hash set')).toContainText('O(n)', { timeout: 30_000 });
+  await expect(page.getByTestId("fit-Floyd's tortoise and hare")).toContainText('O(1)');
+  await page.getByLabel('Scaling metric').selectOption('ops');
+  await expect(page.getByTestId("fit-Floyd's tortoise and hare")).toContainText('O(n)');
+  await expect(page).toHaveURL(/tab=cycle/);
+});

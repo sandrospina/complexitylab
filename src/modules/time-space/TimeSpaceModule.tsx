@@ -6,8 +6,10 @@ import { buildCallTree } from '../../engine/calltree';
 import { bestFit } from '../../engine/fit';
 import { runTrace } from '../../engine/runner';
 import type { Algorithm, TraceStep } from '../../engine/runner';
-import { FIB_ALGOS, maxN, useTimeSpaceStore } from '../../store/time-space';
-import type { FibAlgo } from '../../store/time-space';
+import { useCycleStore } from '../../store/cycle';
+import { FIB_ALGOS, maxN, TABS, useTimeSpaceStore } from '../../store/time-space';
+import type { FibAlgo, Tab } from '../../store/time-space';
+import { CycleTab } from './CycleTab';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
 import { CallTreeView } from '../../views/CallTreeView';
@@ -54,10 +56,42 @@ function Cells({ label, cells }: { label: string; cells: { key: string; v?: stri
   );
 }
 
+const TAB_LABEL: Record<Tab, string> = { fib: 'Fibonacci', cycle: 'Cycle detection' };
+
 export default function TimeSpaceModule() {
+  const { tab, algo, n, step, yMetric } = useTimeSpaceStore();
+  const cycle = useCycleStore();
+  useUrlParams('time-space', {
+    tab,
+    algo,
+    n,
+    step,
+    y: yMetric,
+    cn: cycle.n,
+    ck: cycle.kind,
+    cseed: cycle.seed,
+    cstep: cycle.step,
+    cy: cycle.yMetric,
+  });
+  return (
+    <div className="stack">
+      <div className="tabs" role="tablist" aria-label="Time–space views">
+        {TABS.map((t) => (
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => useTimeSpaceStore.getState().setTab(t)}>
+            {TAB_LABEL[t]}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" aria-label={TAB_LABEL[tab]}>
+        {tab === 'fib' ? <FibTab /> : <CycleTab />}
+      </div>
+    </div>
+  );
+}
+
+function FibTab() {
   const { algo, n, step, yMetric, predictions, bench, benchRunning } = useTimeSpaceStore();
   const { setAlgo, setN, setStep, setYMetric, predict, runBench } = useTimeSpaceStore.getState();
-  useUrlParams('time-space', { algo, n, step, y: yMetric });
 
   const trace = useMemo(() => runTrace(META[algo].generator, { n }), [algo, n]);
   const nodes = useMemo(() => buildCallTree(trace.steps, 'total'), [trace]);
