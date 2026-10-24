@@ -336,3 +336,13 @@ pre.source .ln { display: inline-block; width: 3em; color: var(--muted); user-se
 .tk-string { color: var(--ok); }
 .tk-keyword { color: var(--accent); font-weight: 600; }
 .tk-number { color: var(--warn); }
+.cell.val-true { background: var(--ok); color: #fff; border-color: var(--ok); }
+.cell.val-false { background: var(--bad); color: #fff; border-color: var(--bad); }
+.qbf-level { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; align-items: center; }
+.class-map summary { cursor: pointer; }
+.class-map > [role='list'] { margin-top: 8px; }
+.class-set { border: 1.5px solid var(--border); border-radius: 10px; padding: 6px 10px; margin-top: 6px; font-size: 14px; }
+.class-set > [role='list'] { margin-top: 2px; }
+@media (max-width: 760px) { .class-set { padding: 4px 6px; } }
+.class-set.now { border-color: var(--accent); border-width: 2.5px; background: var(--accent-soft); }
+.class-set.now .class-set { background: var(--surface); }

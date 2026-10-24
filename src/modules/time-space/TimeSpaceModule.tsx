@@ -11,7 +11,10 @@ import { FIB_ALGOS, maxN, TABS, useTimeSpaceStore } from '../../store/time-space
 import type { FibAlgo, Tab } from '../../store/time-space';
 import { CycleTab } from './CycleTab';
 import { LcsTab } from './LcsTab';
+import { QbfTab } from './QbfTab';
 import { useLcsStore } from '../../store/lcs';
+import { useQbfStore } from '../../store/qbf';
+import { raceTabParams } from '../../store/race-tab';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
 import { CallTreeView } from '../../views/CallTreeView';
@@ -58,28 +61,27 @@ function Cells({ label, cells }: { label: string; cells: { key: string; v?: stri
   );
 }
 
-const TAB_LABEL: Record<Tab, string> = { fib: 'Fibonacci', cycle: 'Cycle detection', lcs: 'Longest common subsequence' };
+const TAB_LABEL: Record<Tab, string> = {
+  fib: 'Fibonacci',
+  cycle: 'Cycle detection',
+  lcs: 'Longest common subsequence',
+  qbf: 'Quantified formulas (TQBF)',
+};
 
 export default function TimeSpaceModule() {
   const { tab, algo, n, step, yMetric } = useTimeSpaceStore();
   const cycle = useCycleStore();
   const lcs = useLcsStore();
+  const qbf = useQbfStore();
   useUrlParams('time-space', {
     tab,
     algo,
     n,
     step,
     y: yMetric,
-    cn: cycle.n,
-    ck: cycle.kind,
-    cseed: cycle.seed,
-    cstep: cycle.step,
-    cy: cycle.yMetric,
-    ln: lcs.n,
-    lk: lcs.kind,
-    lseed: lcs.seed,
-    lstep: lcs.step,
-    ly: lcs.yMetric,
+    ...raceTabParams('c', cycle),
+    ...raceTabParams('l', lcs),
+    ...raceTabParams('q', qbf),
   });
   return (
     <div className="stack">
@@ -94,6 +96,7 @@ export default function TimeSpaceModule() {
         {tab === 'fib' && <FibTab />}
         {tab === 'cycle' && <CycleTab />}
         {tab === 'lcs' && <LcsTab />}
+        {tab === 'qbf' && <QbfTab />}
       </div>
     </div>
   );

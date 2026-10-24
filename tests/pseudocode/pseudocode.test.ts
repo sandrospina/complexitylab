@@ -21,6 +21,9 @@ import { lcsHirschberg } from '../../src/algorithms/lcs/hirschberg';
 import { makeLcsInput } from '../../src/algorithms/lcs/input';
 import { lcsRows } from '../../src/algorithms/lcs/rows';
 import { lcsTable } from '../../src/algorithms/lcs/table';
+import { makeQbfInput } from '../../src/algorithms/qbf/input';
+import { qbfRecursive } from '../../src/algorithms/qbf/recursive';
+import { qbfTable } from '../../src/algorithms/qbf/table';
 import { bfs } from '../../src/algorithms/graph/bfs';
 import { dfs } from '../../src/algorithms/graph/dfs';
 import { dijkstraArray } from '../../src/algorithms/graph/dijkstra-array';
@@ -315,6 +318,22 @@ describe('measured line counts match the formulas', () => {
     expect(php.lines[8]).toBe(php.ops.clauseCheck);
     const ex = runCount(dpll, { cnf: makeSatPreset('example', mulberry32(1)), ...opts }).counters;
     expect([ex.lines[6], ex.lines[3], (ex.lines[5] ?? 0) + (ex.lines[7] ?? 0)]).toEqual([1, 1, 4]);
+  });
+
+  it('TQBF on the full-tree kinds: 2ⁿ⁺¹ − 1 nodes, 2ⁿ − 1 choices; the table folds 2ⁿ − 1 pairs over n levels', () => {
+    for (const n of [1, 3, 8]) {
+      for (const kind of ['exists-unsat', 'forall-taut'] as const) {
+        const q = makeQbfInput(n, kind, mulberry32(1));
+        const rec = runCount(qbfRecursive, q).counters;
+        expect([rec.lines[1], rec.lines[3], rec.lines[4], rec.lines[5]]).toEqual([2 ** (n + 1) - 1, 2 ** n - 1, 2 ** n - 1, 2 ** n - 1]);
+        expect(rec.lines[2]).toBe(rec.ops.clauseCheck);
+        const tab = runCount(qbfTable, q).counters;
+        expect([tab.lines[1], tab.lines[3], tab.lines[4], tab.lines[5], tab.lines[6]]).toEqual([2 ** n, n, 2 ** n - 1, 2 ** n - 1, 1]);
+        expect(tab.lines[2]).toBe(rec.lines[2]);
+      }
+    }
+    // All ∀ over (x₁ ∨ ¬x₁): one clause check per leaf.
+    expect(runCount(qbfRecursive, makeQbfInput(5, 'forall-taut', mulberry32(1))).counters.lines[2]).toBe(32);
   });
 
   it('reductions: line 1 creates the variables and each later line emits exactly its family’s clauses', () => {

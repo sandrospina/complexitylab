@@ -9,6 +9,10 @@ import { LCS_KINDS, makeLcsInput } from '../algorithms/lcs/input';
 import type { LcsInput, LcsKind, LcsResult } from '../algorithms/lcs/input';
 import { lcsRows } from '../algorithms/lcs/rows';
 import { lcsTable } from '../algorithms/lcs/table';
+import { makeQbfInput, QBF_KINDS } from '../algorithms/qbf/input';
+import type { Qbf, QbfKind } from '../algorithms/qbf/input';
+import { qbfRecursive } from '../algorithms/qbf/recursive';
+import { qbfTable } from '../algorithms/qbf/table';
 import type { FibInput, FibInputKind } from '../algorithms/fib/input';
 import { fibIterative } from '../algorithms/fib/iterative';
 import { fibMemo, fibNaive } from '../algorithms/fib/recursive';
@@ -303,6 +307,26 @@ const cycle = (s: Omit<AlgorithmSpec<CycleInput, CycleResult, CycleKind>, 'input
     ...s,
   });
 
+/**
+ * n is the number of variables. The full-tree kinds run to 2²⁰ leaves; the random kind takes the
+ * median of fewer trials over smaller n, since the table evaluates every leaf of every trial.
+ */
+const QBF_SIZES = Array.from({ length: 10 }, (_, i) => 2 + 2 * i);
+const qbf = (s: Omit<AlgorithmSpec<Qbf, boolean, QbfKind>, 'inputKinds' | 'makeInput' | 'metric' | 'maxAnimN' | 'maxBenchN' | 'benchSizes'>) =>
+  define<Qbf, boolean, QbfKind>({
+    inputKinds: QBF_KINDS.map((k) => ({
+      ...k,
+      xLabel: 'variables n',
+      ...(k.random ? { aggregate: 'median' as const, trials: 16, sizes: QBF_SIZES.filter((n) => n <= 16) } : {}),
+    })),
+    makeInput: makeQbfInput,
+    metric: 'total',
+    maxAnimN: 6,
+    maxBenchN: 20,
+    benchSizes: QBF_SIZES,
+    ...s,
+  });
+
 export const MODULES: ModuleSpec[] = [
   {
     id: 'search',
@@ -446,6 +470,22 @@ export const MODULES: ModuleSpec[] = [
         generator: lcsHirschberg,
         expected: { random: 'n2', similar: 'n2', different: 'n2' },
         expectedMem: { random: 'n', similar: 'n', different: 'n' },
+      }),
+      qbf({
+        id: 'time-space/qbf-recursive',
+        name: 'Recursive evaluation',
+        generator: qbfRecursive,
+        expected: { alternating: 'expc', 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
+        expectedMem: { alternating: 'n', 'exists-unsat': 'n', 'forall-taut': 'n' },
+      }),
+      qbf({
+        id: 'time-space/qbf-table',
+        name: 'Bottom-up table',
+        generator: qbfTable,
+        // Every leaf, but at a leaf that passes many clauses the checks grow with m = n/2 over
+        // these sizes, so the random kind fits a base just above 2.
+        expected: { alternating: 'expc', 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
+        expectedMem: { alternating: 'exp2', 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
       }),
     ],
   },

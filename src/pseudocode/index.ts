@@ -4,6 +4,7 @@ import { BFS, DFS, DIJKSTRA_ARRAY, DIJKSTRA_HEAP } from './graphs';
 import { HELD_KARP, KNAPSACK_BRUTE, KNAPSACK_DP, TSP_BRUTE, TSP_HEURISTIC } from './knapsack-tsp';
 import { CYCLE_HASH, FIBONACCI, FIBONACCI_ITERATIVE, FLOYD, HIRSCHBERG, LCS_ROWS, LCS_TABLE } from './time-space';
 import { CLIQUE_TO_SAT, COLORING_TO_SAT, COOK_LEVIN, HAMILTONIAN_TO_SAT, SUDOKU_TO_SAT, TSEITIN } from './reductions';
+import { QBF_EVAL, QBF_TABLE } from './pspace';
 import { DPLL, TRUTH_TABLE } from './sat';
 import type { Pseudocode } from './types';
 import { SUBSET_SUM_SEARCH, SUDOKU_CHECK, SUDOKU_SOLVE, VERIFY_SUBSET_SUM } from './verify';
@@ -29,6 +30,8 @@ export const PSEUDOCODE: Record<string, Pseudocode> = {
   'time-space/lcs-table': LCS_TABLE,
   'time-space/lcs-rows': LCS_ROWS,
   'time-space/lcs-hirschberg': HIRSCHBERG,
+  'time-space/qbf-recursive': QBF_EVAL,
+  'time-space/qbf-table': QBF_TABLE,
   'graphs/bfs': BFS,
   'graphs/dfs': DFS,
   'graphs/dijkstra-array': DIJKSTRA_ARRAY,
