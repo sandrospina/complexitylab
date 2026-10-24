@@ -346,3 +346,23 @@ pre.source .ln { display: inline-block; width: 3em; color: var(--muted); user-se
 @media (max-width: 760px) { .class-set { padding: 4px 6px; } }
 .class-set.now { border-color: var(--accent); border-width: 2.5px; background: var(--accent-soft); }
 .class-set.now .class-set { background: var(--surface); }
+.digraph .dg-edge { stroke: var(--muted); stroke-width: 1.5; stroke-opacity: 0.7; }
+.digraph .dg-edge.hot { stroke: var(--accent); stroke-width: 3; stroke-opacity: 1; }
+.digraph .dg-arrowhead { fill: var(--muted); }
+.dg-vertex circle { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.dg-vertex text { font: 12px ui-monospace, Menlo, monospace; fill: var(--text); pointer-events: none; }
+.dg-vertex.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
+.dg-vertex.mid circle { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: 3 2; }
+.dg-vertex.end circle { stroke: var(--accent); stroke-width: 3; }
+.dg-vertex.current circle { fill: var(--warn); stroke: var(--warn); }
+.dg-vertex.target circle { stroke: var(--bad); stroke-width: 3; }
+.dg-vertex.win circle { fill: var(--ok); stroke: var(--ok); }
+.dg-vertex.lose circle { fill: var(--bad); stroke: var(--bad); }
+.dg-vertex.win text, .dg-vertex.lose text, .dg-vertex.current text { fill: #fff; }
+.dg-vertex.used circle { fill: var(--dim); stroke: var(--muted); }
+.dg-vertex.clickable { cursor: pointer; }
+.dg-vertex.clickable:focus-visible circle { stroke: var(--accent); stroke-width: 4; }
+.frame-stack { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font: 12px ui-monospace, Menlo, monospace; }
+.frame-stack li { padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.frame-stack li:last-child { border-color: var(--warn); }
+.digraph { margin: 0 auto; }

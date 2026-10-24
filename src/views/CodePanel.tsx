@@ -122,6 +122,7 @@ const TEX_OF: Record<Pseudocode['bound'], string> = {
   n2: 'n^2',
   n2logn: 'n^2\\log_2 n',
   n3: 'n^3',
+  quasi: 'n^{\\log_2 n}',
   expc: 'c^n',
   expPhi: '\\varphi^n',
   exp2: '2^n',

@@ -1,5 +1,5 @@
 /** Complexity classes the app can fit, predict and plot, slowest-growing first. */
-export const COMPLEXITY_CLASSES = ['1', 'loglogn', 'logn', 'sqrtn', 'n', 'nlogn', 'n2', 'n2logn', 'n3', 'expc', 'expPhi', 'exp2', 'n2exp2', 'fact'] as const;
+export const COMPLEXITY_CLASSES = ['1', 'loglogn', 'logn', 'sqrtn', 'n', 'nlogn', 'n2', 'n2logn', 'n3', 'quasi', 'expc', 'expPhi', 'exp2', 'n2exp2', 'fact'] as const;
 
 export type ComplexityClass = (typeof COMPLEXITY_CLASSES)[number];
 
@@ -17,6 +17,7 @@ export const CLASS_LABEL: Record<ComplexityClass, string> = {
   n2: 'O(n²)',
   n2logn: 'O(n² log n)',
   n3: 'O(n³)',
+  quasi: 'O(nˡᵒᵍ ⁿ)',
   expc: 'O(cⁿ)',
   expPhi: 'O(φⁿ)',
   exp2: 'O(2ⁿ)',
@@ -60,6 +61,9 @@ export function growth(cls: ComplexityClass, n: number, base = 2): number {
       return n * n * Math.log2(n);
     case 'n3':
       return n * n * n;
+    case 'quasi':
+      // Quasi-polynomial: faster than any polynomial, slower than any cⁿ. Savitch's time.
+      return n ** Math.log2(n);
     case 'expc':
       return base ** n;
     case 'expPhi':

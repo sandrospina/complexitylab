@@ -12,8 +12,12 @@ import type { FibAlgo, Tab } from '../../store/time-space';
 import { CycleTab } from './CycleTab';
 import { LcsTab } from './LcsTab';
 import { QbfTab } from './QbfTab';
+import { SavitchTab } from './SavitchTab';
+import { GeographyTab } from './GeographyTab';
 import { useLcsStore } from '../../store/lcs';
 import { useQbfStore } from '../../store/qbf';
+import { useReachStore } from '../../store/reach';
+import { useGeographyStore } from '../../store/geography';
 import { raceTabParams } from '../../store/race-tab';
 import { useUrlParams } from '../../store/url-state';
 import { AlgorithmView } from '../../views/AlgorithmView';
@@ -66,6 +70,8 @@ const TAB_LABEL: Record<Tab, string> = {
   cycle: 'Cycle detection',
   lcs: 'Longest common subsequence',
   qbf: 'Quantified formulas (TQBF)',
+  savitch: 'Savitch: reachability',
+  geography: 'Geography',
 };
 
 export default function TimeSpaceModule() {
@@ -73,6 +79,8 @@ export default function TimeSpaceModule() {
   const cycle = useCycleStore();
   const lcs = useLcsStore();
   const qbf = useQbfStore();
+  const reach = useReachStore();
+  const geo = useGeographyStore();
   useUrlParams('time-space', {
     tab,
     algo,
@@ -82,6 +90,13 @@ export default function TimeSpaceModule() {
     ...raceTabParams('c', cycle),
     ...raceTabParams('l', lcs),
     ...raceTabParams('q', qbf),
+    ...raceTabParams('r', reach),
+    gb: geo.board,
+    gn: geo.n,
+    gseed: geo.seed,
+    gstep: geo.step,
+    gk: geo.benchKind,
+    gy: geo.yMetric,
   });
   return (
     <div className="stack">
@@ -97,6 +112,8 @@ export default function TimeSpaceModule() {
         {tab === 'cycle' && <CycleTab />}
         {tab === 'lcs' && <LcsTab />}
         {tab === 'qbf' && <QbfTab />}
+        {tab === 'savitch' && <SavitchTab />}
+        {tab === 'geography' && <GeographyTab />}
       </div>
     </div>
   );

@@ -52,6 +52,16 @@ describe('fit', () => {
     });
   });
 
+  it('fits n^(log n) over several doublings, and never over a narrow range where cⁿ looks the same', () => {
+    const wide = [2, 4, 8, 16, 32];
+    expect(bestFit(wide.map((n) => ({ n, y: 3 * n ** Math.log2(n) }))).cls).toBe('quasi');
+    expect(bestFit(wide.map((n) => ({ n, y: 2 ** n }))).cls).toBe('exp2');
+    expect(bestFit(wide.map((n) => ({ n, y: n ** 3 }))).cls).toBe('n3');
+    // Between 32 and 56, n^(log n) is indistinguishable from a gentle exponential.
+    const narrow = [32, 36, 40, 44, 48, 52, 56];
+    expect(bestFit(narrow.map((n) => ({ n, y: n ** Math.log2(n) }))).cls).not.toBe('quasi');
+  });
+
   it('names constant data O(1), not a class that ties within rounding', () => {
     for (const lin of [[4, 6, 8, 10, 12, 14], [16, 32, 64, 128, 256]]) expect(bestFit(lin.map((n) => ({ n, y: 20 }))).cls).toBe('1');
   });

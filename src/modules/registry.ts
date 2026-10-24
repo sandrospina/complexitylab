@@ -13,6 +13,13 @@ import { makeQbfInput, QBF_KINDS } from '../algorithms/qbf/input';
 import type { Qbf, QbfKind } from '../algorithms/qbf/input';
 import { qbfRecursive } from '../algorithms/qbf/recursive';
 import { qbfTable } from '../algorithms/qbf/table';
+import { reachBfs } from '../algorithms/reach/bfs';
+import { makeReachInput, REACH_KINDS } from '../algorithms/reach/input';
+import type { ReachInput, ReachKind } from '../algorithms/reach/input';
+import { reachSavitch } from '../algorithms/reach/savitch';
+import { GEO_KINDS, makeGeoInput } from '../algorithms/geography/input';
+import type { GeoInput, GeoKind } from '../algorithms/geography/input';
+import { geographyMinimax } from '../algorithms/geography/minimax';
 import type { FibInput, FibInputKind } from '../algorithms/fib/input';
 import { fibIterative } from '../algorithms/fib/iterative';
 import { fibMemo, fibNaive } from '../algorithms/fib/recursive';
@@ -327,6 +334,16 @@ const qbf = (s: Omit<AlgorithmSpec<Qbf, boolean, QbfKind>, 'inputKinds' | 'makeI
     ...s,
   });
 
+/** n is the number of vertices, s = 0 and t = n − 1. */
+const reach = (s: Omit<AlgorithmSpec<ReachInput, boolean, ReachKind>, 'inputKinds' | 'makeInput' | 'metric' | 'maxAnimN'>) =>
+  define<ReachInput, boolean, ReachKind>({
+    inputKinds: REACH_KINDS,
+    makeInput: makeReachInput,
+    metric: 'total',
+    maxAnimN: 8,
+    ...s,
+  });
+
 export const MODULES: ModuleSpec[] = [
   {
     id: 'search',
@@ -486,6 +503,39 @@ export const MODULES: ModuleSpec[] = [
         // these sizes, so the random kind fits a base just above 2.
         expected: { alternating: 'expc', 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
         expectedMem: { alternating: 'exp2', 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
+      }),
+      reach({
+        id: 'time-space/reach-bfs',
+        name: 'Breadth-first search',
+        generator: reachBfs,
+        maxBenchN: 2 ** 10,
+        benchSizes: [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+        expected: { unreachable: 'n', path: 'n', random: 'n' },
+        expectedMem: { unreachable: 'n', path: 'n', random: 'n' },
+      }),
+      reach({
+        id: 'time-space/reach-savitch',
+        name: 'Savitch',
+        generator: reachSavitch,
+        maxBenchN: 32,
+        benchSizes: [2, 4, 8, 16, 32],
+        expected: { unreachable: 'quasi', path: 'quasi', random: 'quasi' },
+        expectedMem: { unreachable: 'logn', path: 'logn', random: 'logn' },
+      }),
+      define<GeoInput, boolean, GeoKind>({
+        id: 'time-space/geography',
+        name: 'Minimax',
+        generator: geographyMinimax,
+        inputKinds: GEO_KINDS,
+        makeInput: makeGeoInput,
+        metric: 'total',
+        maxAnimN: 4,
+        maxBenchN: 16,
+        benchSizes: Array.from({ length: 16 }, (_, i) => i + 1),
+        // Each variable doubles the game tree, padding diamonds included: ∃ must try both sides
+        // of every diamond before losing, and ∀ both sides before conceding.
+        expected: { 'exists-unsat': 'exp2', 'forall-taut': 'exp2' },
+        expectedMem: { 'exists-unsat': 'n', 'forall-taut': 'n' },
       }),
     ],
   },

@@ -29,6 +29,7 @@ Fibonacci naive/memo/iterative with call-tree collapse (reuses `calltree.ts`); S
 **Tests:** BFS/DFS same visited set, O(V+E) ops; both Dijkstras agree; memo fib calls ≤ 2n.
 **Gate:** Dijkstra crossover density visible on the scaling plot; BFS/DFS memory difference visible on wide vs deep graphs.
 Notes: added fit classes O(φⁿ) (naive Fibonacci) and O(n² log n) (heap Dijkstra on complete graphs); the density control is an average-degree slider; benchmark graphs for Dijkstra use weights where every edge improves a distance (the heap's worst case), since random weights hide the crossover.
+Later additions: cycle detection (hash set vs Floyd) and LCS (full table, two rows, Hirschberg); PSPACE tabs: TQBF as a game tree (recursive Θ(n) space vs bottom-up 2ⁿ table), Savitch's REACH(u, v, k) against BFS (log n frames vs n cells, at n^(log n) time; adds the quasi-polynomial fit class, considered only when sizes span ≥ 8×), and playable Generalised Geography with the TQBF ≤ₚ Geography board (brute-force checked: ∃ wins ⇔ formula true). A shared nested class map (L ⊆ NL ⊆ P ⊆ NP ⊆ PSPACE ⊆ EXPTIME) heads the PSPACE tabs.
 
 ## M4 — The exponential wall ✅
 Knapsack brute force vs DP with "add a bit"; TSP brute force, Held–Karp, nearest neighbour + 2-opt on a clickable map with optimality gap; verify-vs-solve page (Sudoku, subset sum). All exponential algorithms respect budgets; UI caps n.

@@ -30,6 +30,9 @@ function log10Cost(cls: FixedClass, x: number): number {
       return 2 * x + Math.log10(Math.max(x * LOG2_10, 1e-300));
     case 'n3':
       return 3 * x;
+    case 'quasi':
+      // log₁₀(n^log₂ n) = log₂ n · log₁₀ n
+      return x * LOG2_10 * x;
     case 'expPhi':
       return 10 ** x * Math.log10(PHI);
     case 'exp2':

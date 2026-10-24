@@ -54,3 +54,92 @@ export const QBF_TABLE: Pseudocode = {
   ],
   sources: ['qbf/table.ts'],
 };
+
+export const REACH_BFS: Pseudocode = {
+  title: 'REACH-BFS(G, s, t)',
+  idea: 'Breadth-first search from s, answering yes as soon as t comes off the queue. Fast, but it remembers every vertex it has seen.',
+  lines: [
+    { code: 'visited[1..n] ← false; visited[s] ← true; Q ← ⟨s⟩', depth: 0, cost: 'c_1', times: '1', note: 'n flags and a queue of up to n vertices: Θ(n) cells.' },
+    { code: 'while Q ≠ ∅', depth: 0, cost: 'c_2', note: 'At most n iterations: each vertex is queued once.' },
+    { code: 'u ← DEQUEUE(Q); if u = t then return true', depth: 1, cost: 'c_3', note: '' },
+    { code: 'for each v in Adj[u]', depth: 1, cost: 'c_4', note: 'Each edge once, over the whole run.' },
+    { code: 'if not visited[v]', depth: 2, cost: 'c_5', note: 'The counted check.' },
+    { code: 'visited[v] ← true; ENQUEUE(Q, v)', depth: 3, cost: 'c_6', note: '' },
+    { code: 'return false', depth: 0, cost: 'c_7', note: 'The queue ran dry without meeting t.' },
+  ],
+  dominant: [3, 5],
+  bound: 'n',
+  derivation: [
+    {
+      label: 'Time and space',
+      tex: 'T = O(n + E), \\qquad S = \\Theta(n) \\text{ cells}',
+      text: 'Linear time on the sparse graphs here (quadratic on a dense one), but n flags of memory however the search goes. Reachability is in NL: a nondeterministic machine only needs the current vertex and a step counter, O(log n) bits, guessing the path one edge at a time. Savitch asks how close a deterministic machine can get to that.',
+    },
+  ],
+  sources: ['reach/bfs.ts'],
+};
+
+export const SAVITCH: Pseudocode = {
+  title: 'REACH(u, v, k)',
+  idea: 'Is there a path from u to v of length at most 2ᵏ? If so, it has a midpoint w with both halves at most 2ᵏ⁻¹ long. Try every w, and solve each half the same way. The answer is REACH(s, t, ⌈log₂ n⌉), since a path need never be longer than n − 1.',
+  lines: [
+    { code: 'if k = 0', depth: 0, cost: 'c_1', times: '\\le \\sum_{j=0}^{k} (2n)^j', note: 'Once per call. Each call makes at most 2n calls one level down.' },
+    { code: 'return u = v or (u, v) ∈ E', depth: 1, cost: 'c_2', note: 'A path of length 0 or 1.' },
+    { code: 'for each vertex w', depth: 0, cost: 'c_3', note: 'Every vertex is a candidate midpoint, including u and v.' },
+    { code: 'if REACH(u, w, k − 1)', depth: 1, cost: 'T(k-1)', note: 'The first half. Its frame is popped before the second half reuses the space.' },
+    { code: 'and REACH(w, v, k − 1) then return true', depth: 2, cost: 'T(k-1)', note: 'Only asked if the first half exists.' },
+    { code: 'return false', depth: 0, cost: 'c_6', note: 'No midpoint works.' },
+  ],
+  dominant: [1],
+  bound: 'quasi',
+  derivation: [
+    {
+      label: 'Space: ⌈log₂ n⌉ frames of O(log n) bits',
+      tex: 'S(k) = S(k-1) + O(\\log n) \\;\\Rightarrow\\; S = O(\\log n \\cdot \\log n) = O(\\log^2 n) \\text{ bits}',
+      text: 'Each frame stores u, v, w and k, each a number below n: O(log n) bits. The recursion is only ⌈log₂ n⌉ deep, because k halves the path length at every level. Compare BFS’s n flags.',
+    },
+    {
+      label: 'Time: the price is quasi-polynomial',
+      tex: 'T(k) \\le 2n\\,T(k-1) + O(n) \\;\\Rightarrow\\; T = O\\big((2n)^{\\lceil \\log_2 n \\rceil}\\big) = n^{O(\\log n)}',
+      text: 'Nothing is remembered between calls, so the same half-paths are solved again and again. That is slower than any polynomial and faster than any cⁿ: the n^(log n) the scaling plot fits.',
+    },
+    {
+      label: 'Savitch’s theorem: NSPACE(s) ⊆ SPACE(s²)',
+      tex: '|\\text{configurations}| = 2^{O(s)} \\;\\Rightarrow\\; k = O(s), \\; S = O(s) \\cdot O(s) = O(s^2)',
+      text: 'Run REACH on the configuration graph of a nondeterministic machine using s cells: a vertex is a configuration (state, head positions, tape contents), an edge is one step, and the machine accepts when an accepting configuration is reachable from the start. The graph is never stored: its edges are computed on demand. So nondeterminism costs at most a square in space, and NPSPACE = PSPACE. Nobody knows whether the same holds for time (P vs NP).',
+    },
+  ],
+  sources: ['reach/savitch.ts'],
+};
+
+export const GEOGRAPHY_WIN: Pseudocode = {
+  title: 'WIN(v)',
+  idea: 'Does the player about to move from v win? Exactly when some move leads to a position the opponent loses. Try each unvisited successor w, mark it, and ask whether the opponent wins from there. The answer for the first player is WIN(start), with start already visited.',
+  lines: [
+    { code: 'for each w in Adj[v]', depth: 0, cost: 'c_1', note: 'Every possible move from v.' },
+    { code: 'if not visited[w]', depth: 1, cost: 'c_2', note: 'The token may not return to a vertex it has visited.' },
+    { code: 'visited[w] ← true; r ← WIN(w); visited[w] ← false', depth: 2, cost: 'c_3 + T(w)', note: 'Move, let the opponent play the rest of the game from w, and take the move back: one frame per move on the current path.' },
+    { code: 'if not r then return true', depth: 2, cost: 'c_4', note: 'The opponent loses from w, so moving to w wins.' },
+    { code: 'return false', depth: 0, cost: 'c_5', note: 'Every move loses (or there is none).' },
+  ],
+  dominant: [2],
+  bound: 'exp2',
+  derivation: [
+    {
+      label: 'Time: one branch per move, along every path',
+      tex: 'T \\le \\#\\{\\text{simple paths from start}\\} \\cdot \\max \\deg = 2^{O(n)} \\text{ in the worst case}',
+      text: 'The search tries every sequence of moves the game allows. On a board built from a formula, every diamond doubles the number of games, so with nothing to short-circuit the board from an unsatisfiable all-∃ formula costs Θ(2ⁿ), as the scaling plot measures.',
+    },
+    {
+      label: 'Space: one path',
+      tex: 'S = n \\text{ flags} + (\\text{longest game}) \\text{ frames} \\le 2n',
+      text: 'A game visits each vertex at most once, so it lasts at most n moves, and only the current game is on the stack. Geography is in PSPACE, and the reduction from TQBF makes it PSPACE-complete.',
+    },
+    {
+      label: 'TQBF ≤ₚ Geography',
+      tex: '|V| = 4d + 1 + m, \\quad d \\le 2n + 1 \\text{ diamonds (one per variable, plus padding)}, \\; m \\text{ clauses}',
+      text: 'A board linear in the size of the formula, built in polynomial time, whose first player wins exactly when the formula is true. A fast algorithm for Geography would therefore give a fast algorithm for every problem in PSPACE.',
+    },
+  ],
+  sources: ['geography/minimax.ts'],
+};

@@ -23,6 +23,11 @@ const MIN_BASE = 1.05;
 /** A fitted base this close to a named one (2 or φ) is that class, not a new one. */
 const NAMED_BASE_TOLERANCE = 0.03;
 const NAMED_BASES = [2, PHI];
+/**
+ * n^(log n) bends away from cⁿ only over several doublings of n: on a narrower range of sizes
+ * either curve fits the other, so quasi-polynomial is only considered when n spans this ratio.
+ */
+export const QUASI_MIN_SPAN = 8;
 
 /**
  * Weighted least squares of y = a·f(n) + b with weights 1/y², so that small and large n
@@ -92,7 +97,10 @@ function fitExpc(pts: Point[]): Fit | undefined {
  */
 export function fitAll(pts: Point[]): Fit[] {
   const rank = (f: Fit) => (f.cls === 'expc' ? f.error * EXPC_ADVANTAGE : f.error);
-  return [...FIXED_CLASSES.map((c) => fitClass(c, pts)), fitExpc(pts)]
+  const ns = pts.map((p) => p.n);
+  const span = Math.max(...ns) / Math.max(Math.min(...ns), 1);
+  const classes = span >= QUASI_MIN_SPAN ? FIXED_CLASSES : FIXED_CLASSES.filter((c) => c !== 'quasi');
+  return [...classes.map((c) => fitClass(c, pts)), fitExpc(pts)]
     .filter((f): f is Fit => f !== undefined)
     .sort((x, y) => {
       const d = rank(x) - rank(y);
